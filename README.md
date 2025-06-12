@@ -5,6 +5,12 @@ Analysis pipeline for FFE 1d retrospective navigator correction for spinal cord 
 
 See: https://openneuro.org/datasets/ds006347/download
 
+Some notes about the data:
+- Contrast: `_T2starw`
+- Varying number of sessions across participants: ses-01, ses-02, etc.
+- With | without navigator: `*_rec-navigated` | `*_rec-standard`
+- Varying location: `acq-lowerT` | `acq-upperT` | `acq-LSE`
+
 ## Run analysis script
 
 TODO: complete below:
