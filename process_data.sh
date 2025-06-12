@@ -25,7 +25,11 @@ set -e -o pipefail
 trap "echo Caught Keyboard Interrupt within script. Exiting now.; exit" INT
 
 # Retrieve input params
-SUBJECT=$1
+SUBJECT_SESSION=$1
+
+# Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
+SUBJECT=`cut -d "/" -f1 <<< "$SUBJECT_SESSION"`
+SESSION=`cut -d "/" -f2 <<< "$SUBJECT_SESSION"`
 
 # get starting time:
 start=`date +%s`
@@ -86,30 +90,30 @@ sct_check_dependencies -short
 
 # Go to folder where data will be copied and processed
 cd $PATH_DATA_PROCESSED
-# TODO: uncomment once participants.tsv is available in data folder
-# # Copy list of participants in processed data folder
-# if [[ ! -f "participants.tsv" ]]; then
-#   rsync -avzh $PATH_DATA/participants.tsv .
-# fi
-# # Copy list of participants in results folder (used by spine-generic scripts)
-# if [[ ! -f $PATH_RESULTS/"participants.tsv" ]]; then
-#   rsync -avzh $PATH_DATA/participants.tsv $PATH_RESULTS/"participants.tsv"
-# fi
+# Copy list of participants in processed data folder
+if [[ ! -f "participants.tsv" ]]; then
+  rsync -avzh $PATH_DATA/participants.tsv .
+fi
 # Copy source images
-rsync -avzh $PATH_DATA/$SUBJECT .
+mkdir -p $SUBJECT
+rsync -avzh $PATH_DATA/$SUBJECT_SESSION $SUBJECT/
+
 # Go to anat folder where all structural data are located
-cd ${SUBJECT}/anat/
+cd ${SUBJECT_SESSION}/anat/
+
+# Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
+SUBJECT="${SUBJECT}_${SESSION}"
 
 CONTRAST="T2starw"
-EXT="nii.gz"
+EXT=".nii.gz"
 
 # Create a list of values with 'acq-' in the file name
 FILES_ACQ=("lowerT" "upperT" "LSE")
 
 # Loop across FILES_ACQ
 for acq in ${FILES_ACQ[@]}; do
-  # Start processing the navitor data
-  file_data="${SUBJECT}_acq-$acq_rec-navigated_$CONTRAST"
+  # Start processing the navigator data
+  file_data="${SUBJECT}_acq-${acq}_rec-navigated_$CONTRAST"
   echo "Processing: $file_data$EXT"
   # Check if the file exists
   if [[ ! -e $file_data$EXT ]]; then
@@ -119,6 +123,9 @@ for acq in ${FILES_ACQ[@]}; do
   # Segment spinal cord (only if it does not exist)
   segment_if_does_not_exist $file_data
   file_seg=$FILESEG
+  # Register the 'standard' segmentation to the 'navigated' data
+  # TODO
+  
 done
 
 
