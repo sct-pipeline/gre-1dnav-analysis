@@ -8,6 +8,11 @@ See: https://openneuro.org/datasets/ds006347/download
 ## Run analysis script
 
 TODO: complete below:
-```shell
-sct_run_batch -script process_data.sh
+```bash
+sct_run_batch -script process_data.sh -path-data <PATH_TO_DATA> -path-output <PATH_TO_OUTPUT>
+```
+
+Example:
+```bash
+sct_run_batch -script process_data.sh -path-data ~/data/ds006347/ -path-output ~/temp/ds006347_20250612_144520
 ```
