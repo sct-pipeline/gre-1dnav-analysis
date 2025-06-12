@@ -3,7 +3,7 @@ Analysis pipeline for FFE 1d retrospective navigator correction for spinal cord 
 
 ## Download data
 
-TODO: command to download data
+See: https://openneuro.org/datasets/ds006347/download
 
 ## Run analysis script
 
