@@ -25,11 +25,7 @@ set -e -o pipefail
 trap "echo Caught Keyboard Interrupt within script. Exiting now.; exit" INT
 
 # Retrieve input params
-SUBJECT_SESSION=$1
-
-# Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
-SUBJECT=`cut -d "/" -f1 <<< "$SUBJECT_SESSION"`
-SESSION=`cut -d "/" -f2 <<< "$SUBJECT_SESSION"`
+SUBJECT=$1
 
 # get starting time:
 start=`date +%s`
@@ -42,7 +38,6 @@ start=`date +%s`
 # it does not, perform seg.
 segment_if_does_not_exist(){
   local file="$1"
-  local contrast="$2"
   # Update global variable with segmentation file name
   FILESEG="${file}_seg"
   FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT}/anat/${FILESEG}-manual$EXT"
@@ -59,29 +54,6 @@ segment_if_does_not_exist(){
   fi
 }
 
-# Check if manual label already exists. If it does, copy it locally. If it does
-# not, perform labeling.
-label_if_does_not_exist(){
-  local file="$1"
-  local file_seg="$2"
-  # Update global variable with segmentation file name
-  FILELABEL="${file}_labels"
-  FILELABELMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT}/anat/${FILELABEL}-manual$EXT"
-  echo "Looking for manual label: $FILELABELMANUAL"
-  if [[ -e $FILELABELMANUAL ]]; then
-    echo "Found! Using manual labels."
-    rsync -avzh $FILELABELMANUAL ${FILELABEL}$EXT
-  else
-    echo "Not found. Proceeding with automatic labeling."
-    # Generate labeled segmentation
-    sct_deepseg totalspineseg -i ${file}$EXT
-    sct_label_vertebrae -i ${file}$EXT -s ${file_seg}$EXT -c t1 -discfile ${file}_step1_levels$EXT
-    # Create labels in the cord at C3 and C5 mid-vertebral levels
-    sct_label_utils -i ${file_seg}_labeled$EXT -vert-body 3,7 -o ${FILELABEL}$EXT
-  fi
-}
-
-
 
 # SCRIPT STARTS HERE
 # ==============================================================================
@@ -95,39 +67,38 @@ if [[ ! -f "participants.tsv" ]]; then
   rsync -avzh $PATH_DATA/participants.tsv .
 fi
 # Copy source images
-mkdir -p $SUBJECT
-rsync -avzh $PATH_DATA/$SUBJECT_SESSION $SUBJECT/
+rsync -Ravzh $PATH_DATA/./$SUBJECT .
 
 # Go to anat folder where all structural data are located
-cd ${SUBJECT_SESSION}/anat/
+cd ${SUBJECT}/anat/
 
-# Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
-SUBJECT="${SUBJECT}_${SESSION}"
+# Define variables
+# We do a substitution '/' --> '_' in case there is a subfolder 'ses-0X/'
+SUBJECT_SESSION="${SUBJECT//[\/]/_}"
 
+#Loop through the different acquisition and reconstruction options
 CONTRAST="T2starw"
 EXT=".nii.gz"
+ACQ=("acq-upperT" "acq-lowerT" "acq-LSE")
+REC=("rec-navigated" "rec-standard")
 
-# Create a list of values with 'acq-' in the file name
-FILES_ACQ=("lowerT" "upperT" "LSE")
-
-# Loop across FILES_ACQ
-for acq in ${FILES_ACQ[@]}; do
-  # Start processing the navigator data
-  file_data="${SUBJECT}_acq-${acq}_rec-navigated_$CONTRAST"
-  echo "Processing: $file_data$EXT"
-  # Check if the file exists
-  if [[ ! -e $file_data$EXT ]]; then
-    echo "File $file_data$EXT does not exist. Skipping."
-    continue
-  fi
-  # Segment spinal cord (only if it does not exist)
-  segment_if_does_not_exist $file_data
-  file_seg=$FILESEG
-  # Register the 'standard' segmentation to the 'navigated' data
-  # TODO
-  
+for acq in "${ACQ[@]}";do
+  for rec in "${REC[@]}";do
+    file=${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}
+    echo "File: ${file}${EXT}"
+    if [ -e "${file}${EXT}" ]; then
+      echo "File found! Processing..."
+      segment_if_does_not_exist ${file}
+      file_seg=$FILESEG
+      # Register the 'standard' segmentation to the 'navigated' data
+      # TODO
+      # Quantify ghosting
+      # TODO
+    else
+      echo "File not found. Skipping"
+    fi
+  done
 done
-
 
 # Verify presence of output files and write log file if error
 # ------------------------------------------------------------------------------
