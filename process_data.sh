@@ -25,11 +25,7 @@ set -e -o pipefail
 trap "echo Caught Keyboard Interrupt within script. Exiting now.; exit" INT
 
 # Retrieve input params
-SUBJECT_SESSION=$1
-# Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
-# Can be improved, see: https://github.com/sct-pipeline/gre-1dnav-analysis/issues/3
-SUBJECT=`cut -d "/" -f1 <<< "$SUBJECT_SESSION"`
-SESSION=`cut -d "/" -f2 <<< "$SUBJECT_SESSION"`
+SUBJECT_SESSION_REL_PATH=$1
 
 # get starting time:
 start=`date +%s`
@@ -44,18 +40,35 @@ segment_if_does_not_exist(){
   local file="$1"
   # Update global variable with segmentation file name
   FILESEG="${file}_seg"
-  FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT}/anat/${FILESEG}-manual$EXT"
+  FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}-manual$EXT"
   echo
   echo "Looking for manual segmentation: $FILESEGMANUAL"
   if [[ -e $FILESEGMANUAL ]]; then
     echo "Found! Using manual segmentation."
     rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
-    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT}
+    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
     # Segment spinal cord
-    sct_deepseg spinalcord -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT}
+    sct_deepseg spinalcord -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
   fi
+}
+
+
+# Verify presence of output files and write log file if error
+check_if_exists()
+{
+  local acq="$1"
+  local rec="$2"
+  FILES_TO_CHECK=(
+    "anat/${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}${EXT}"
+    "anat/${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}_seg${EXT}"
+  )
+  for file in ${FILES_TO_CHECK[@]}; do
+    if [[ ! -e $file ]]; then
+      echo "${SUBJECT_SESSION_REL_PATH}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
+    fi
+  done
 }
 
 
@@ -72,18 +85,14 @@ if [[ ! -f "participants.tsv" ]]; then
 fi
 
 # Copy source images
-mkdir -p $SUBJECT
-rsync -avzh $PATH_DATA/$SUBJECT_SESSION $SUBJECT/
+rsync -Ravzh $PATH_DATA/./$SUBJECT_SESSION_REL_PATH .
 
 # Go to anat folder where all structural data are located
-cd ${SUBJECT_SESSION}/anat/
-
-# Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
-SUBJECT="${SUBJECT}_${SESSION}"
+cd ${SUBJECT_SESSION_REL_PATH}/anat/
 
 # Define variables
 # We do a substitution '/' --> '_' in case there is a subfolder 'ses-0X/'
-SUBJECT_SESSION="${SUBJECT//[\/]/_}"
+SUBJECT_SESSION="${SUBJECT_SESSION_REL_PATH//[\/]/_}"
 
 #Loop through the different acquisition and reconstruction options
 CONTRAST="T2starw"
@@ -97,30 +106,21 @@ for acq in "${ACQ[@]}";do
     echo "File: ${file}${EXT}"
     if [ -e "${file}${EXT}" ]; then
       echo "File found! Processing..."
-      segment_if_does_not_exist ${file}
+      # segment_if_does_not_exist ${file}
       file_seg=$FILESEG
       # Register the 'standard' segmentation to the 'navigated' data
       # TODO
       # Quantify ghosting
       # TODO
+      check_if_exists "${acq}" "${rec}"
     else
       echo "File not found. Skipping"
     fi
   done
 done
 
-# Verify presence of output files and write log file if error
-# ------------------------------------------------------------------------------
-FILES_TO_CHECK=(
-  "anat/${SUBJECT}_acq-$acq_rec-navigated_$CONTRAST$EXT"
-  "anat/${SUBJECT}_acq-$acq_rec-navigated_${CONTRAST_seg$EXT"
-)
-for file in ${FILES_TO_CHECK[@]}; do
-  if [[ ! -e $file ]]; then
-    echo "${SUBJECT}/${file} does not exist" >> $PATH_LOG/_error_check_output_files.log
-  fi
-done
 
+# ------------------------------------------------------------------------------
 # Display useful info for the log
 end=`date +%s`
 runtime=$((end-start))
