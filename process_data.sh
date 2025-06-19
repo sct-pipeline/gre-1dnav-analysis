@@ -59,6 +59,11 @@ segment_if_does_not_exist(){
     if [ "$OVERWRITE_SEG" = true ] ; then
       echo "Overwriting."
       sct_deepseg_sc -i ${file}$EXT -c $contrast -o $FILE_OUTPUT_SEG -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+      SCT_VERSION=$(sct_version)
+      SCT_DATE=$(date)
+      SCT_USER=$(whoami)
+      json_string='{ "sct_version": "'"${SCT_VERSION}"'", "date": "'"${SCT_DATE}"'", "Username": "'"$SCT_USER"'" }'
+      echo "$json_string" > ${FILESEGJSON}
     else
       echo "Using previous segmentation."
       sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG} -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
@@ -68,6 +73,11 @@ segment_if_does_not_exist(){
     # Segment spinal cord
     # sct_deepseg spinalcord -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
     sct_deepseg_sc -i ${file}$EXT -c $contrast -o $FILE_OUTPUT_SEG -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    SCT_VERSION=$(sct_version)
+    SCT_DATE=$(date)
+    SCT_USER=$(whoami)
+    json_string='{ "sct_version": "'"${SCT_VERSION}"'", "date": "'"${SCT_DATE}"'", "Username": "'"$SCT_USER"'" }'
+    echo "$json_string" > ${FILESEGJSON}
   fi
 }
 
@@ -76,6 +86,7 @@ segment_gm_if_does_not_exist(){
   local file="$1"
   # Update global variable with segmentation file name
   FILESEG="${file}_gmseg"
+  FILESEGJSON="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.json"
   FILESEGMANUAL="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}-manual$EXT"
   FILE_OUTPUT_SEG_GM="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}$EXT"
   echo
@@ -93,6 +104,11 @@ segment_gm_if_does_not_exist(){
     if [ "$OVERWRITE_SEG" = true ] ; then
       echo "Overwriting."
       sct_deepseg_gm -i ${file}$EXT -o $FILE_OUTPUT_SEG_GM -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+      SCT_VERSION=$(sct_version)
+      SCT_DATE=$(date)
+      SCT_USER=$(whoami)
+      json_string='{ "sct_version": "'"${SCT_VERSION}"'", "date": "'"${SCT_DATE}"'", "Username": "'"$SCT_USER"'" }'
+      echo "$json_string" > ${FILESEGJSON}
     else
       echo "Using previous segmentation."
       sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG_GM} -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
@@ -101,6 +117,11 @@ segment_gm_if_does_not_exist(){
     echo "Not found. Proceeding with automatic segmentation."
     # Segment gm of the spinal cord
     sct_deepseg_gm -i ${file}$EXT -o $FILE_OUTPUT_SEG_GM -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    SCT_VERSION=$(sct_version)
+    SCT_DATE=$(date)
+    SCT_USER=$(whoami)
+    json_string='{ "sct_version": "'"${SCT_VERSION}"'", "date": "'"${SCT_DATE}"'", "Username": "'"$SCT_USER"'" }'
+    echo "$json_string" > ${FILESEGJSON}
   fi
 }
 
@@ -150,7 +171,7 @@ CONTRAST="T2starw"
 EXT=".nii.gz"
 ACQ=("acq-upperT" "acq-lowerT" "acq-LSE")
 REC=("rec-navigated" "rec-standard")
-OVERWRITE_SEG=false
+OVERWRITE_SEG=true
 
 for acq in "${ACQ[@]}";do
   for rec in "${REC[@]}";do
