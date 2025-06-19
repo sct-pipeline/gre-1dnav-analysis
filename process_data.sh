@@ -50,12 +50,24 @@ segment_if_does_not_exist(){
     echo "Found! Using manual segmentation."
     rsync -avzh $FILESEGMANUAL ${FILE_OUTPUT_SEG}
     sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG} -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    return 0
+  fi
+  echo "Manual segmentation not found!"
+  echo "Looking for automatic segmentation: $FILE_OUTPUT_SEG"
+  if [[ -e $FILE_OUTPUT_SEG ]]; then
+    echo "Found automatic segmentation!"
+    if [ "$OVERWRITE_SEG" = true ] ; then
+      echo "Overwriting."
+      sct_deepseg_sc -i ${file}$EXT -c $contrast -o $FILE_OUTPUT_SEG -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    else
+      echo "Using previous segmentation."
+      sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG} -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    fi
   else
     echo "Not found. Proceeding with automatic segmentation."
     # Segment spinal cord
     # sct_deepseg spinalcord -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
     sct_deepseg_sc -i ${file}$EXT -c $contrast -o $FILE_OUTPUT_SEG -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-
   fi
 }
 
@@ -71,7 +83,20 @@ segment_gm_if_does_not_exist(){
   if [[ -e $FILESEGMANUAL ]]; then
     echo "Found! Using manual segmentation."
     rsync -avzh $FILESEGMANUAL ${FILE_OUTPUT_SEG_GM}
-    sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG_GM} -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG_GM} -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    return 0
+  fi
+  echo "Manual segmentation not found!"
+  echo "Looking for automatic segmentation: $FILE_OUTPUT_SEG_GM"
+  if [[ -e $FILE_OUTPUT_SEG_GM ]]; then
+    echo "Found automatic segmentation!"
+    if [ "$OVERWRITE_SEG" = true ] ; then
+      echo "Overwriting."
+      sct_deepseg_gm -i ${file}$EXT -o $FILE_OUTPUT_SEG_GM -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    else
+      echo "Using previous segmentation."
+      sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG_GM} -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    fi
   else
     echo "Not found. Proceeding with automatic segmentation."
     # Segment gm of the spinal cord
@@ -125,6 +150,7 @@ CONTRAST="T2starw"
 EXT=".nii.gz"
 ACQ=("acq-upperT" "acq-lowerT" "acq-LSE")
 REC=("rec-navigated" "rec-standard")
+OVERWRITE_SEG=false
 
 for acq in "${ACQ[@]}";do
   for rec in "${REC[@]}";do
