@@ -25,11 +25,11 @@ set -e -o pipefail
 trap "echo Caught Keyboard Interrupt within script. Exiting now.; exit" INT
 
 # Retrieve input params
-SUBJECT_SESSION=$1
+SUBJECT_SLASH_SESSION=$1
 # Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
 # Can be improved, see: https://github.com/sct-pipeline/gre-1dnav-analysis/issues/3
-SUBJECT=`cut -d "/" -f1 <<< "$SUBJECT_SESSION"`
-SESSION=`cut -d "/" -f2 <<< "$SUBJECT_SESSION"`
+SUBJECT=`cut -d "/" -f1 <<< "$SUBJECT_SLASH_SESSION"`
+SESSION=`cut -d "/" -f2 <<< "$SUBJECT_SLASH_SESSION"`
 
 # get starting time:
 start=`date +%s`
@@ -41,48 +41,20 @@ start=`date +%s`
 # Check if manual segmentation already exists. If it does, copy it locally. If
 # it does not, perform seg.
 segment_if_does_not_exist(){
-  # Todo: Crash if folder does not exists
   local file="$1"
-  local contrast="$2"
   # Update global variable with segmentation file name
   FILESEG="${file}_seg"
-  FILESEGJSON="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.json"
-  FILESEGMANUAL="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}-manual$EXT"
-  FILE_OUTPUT_SEG="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}$EXT"
+  FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}$EXT"
   echo
   echo "Looking for manual segmentation: $FILESEGMANUAL"
   if [[ -e $FILESEGMANUAL ]]; then
     echo "Found! Using manual segmentation."
-    rsync -avzh $FILESEGMANUAL ${FILE_OUTPUT_SEG}
-    sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG} -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-    return 0
-  fi
-  echo "Manual segmentation not found!"
-  echo "Looking for automatic segmentation: $FILE_OUTPUT_SEG"
-  if [[ -e $FILE_OUTPUT_SEG ]]; then
-    echo "Found automatic segmentation!"
-    if [ "$OVERWRITE_SEG" = true ] ; then
-      echo "Overwriting."
-      sct_deepseg_sc -i ${file}$EXT -c $contrast -o $FILE_OUTPUT_SEG -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-      SCT_VERSION=$(sct_version)
-      SCT_DATE=$(date)
-      SCT_USER=$(whoami)
-      json_string='{ "sct_version": "'"${SCT_VERSION}"'", "date": "'"${SCT_DATE}"'", "Username": "'"$SCT_USER"'" }'
-      echo "$json_string" > ${FILESEGJSON}
-    else
-      echo "Using previous segmentation."
-      sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG} -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-    fi
+    rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
+    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
     # Segment spinal cord
-    # sct_deepseg spinalcord -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-    sct_deepseg_sc -i ${file}$EXT -c $contrast -o $FILE_OUTPUT_SEG -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-    SCT_VERSION=$(sct_version)
-    SCT_DATE=$(date)
-    SCT_USER=$(whoami)
-    json_string='{ "sct_version": "'"${SCT_VERSION}"'", "date": "'"${SCT_DATE}"'", "Username": "'"$SCT_USER"'" }'
-    echo "$json_string" > ${FILESEGJSON}
+    sct_deepseg spinalcord -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   fi
 }
 
@@ -91,42 +63,17 @@ segment_gm_if_does_not_exist(){
   local file="$1"
   # Update global variable with segmentation file name
   FILESEG="${file}_gmseg"
-  FILESEGJSON="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.json"
-  FILESEGMANUAL="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}-manual$EXT"
-  FILE_OUTPUT_SEG_GM="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}$EXT"
+  FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}$EXT"
   echo
   echo "Looking for manual segmentation: $FILESEGMANUAL"
   if [[ -e $FILESEGMANUAL ]]; then
     echo "Found! Using manual segmentation."
-    rsync -avzh $FILESEGMANUAL ${FILE_OUTPUT_SEG_GM}
-    sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG_GM} -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-    return 0
-  fi
-  echo "Manual segmentation not found!"
-  echo "Looking for automatic segmentation: $FILE_OUTPUT_SEG_GM"
-  if [[ -e $FILE_OUTPUT_SEG_GM ]]; then
-    echo "Found automatic segmentation!"
-    if [ "$OVERWRITE_SEG" = true ] ; then
-      echo "Overwriting."
-      sct_deepseg_gm -i ${file}$EXT -o $FILE_OUTPUT_SEG_GM -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-      SCT_VERSION=$(sct_version)
-      SCT_DATE=$(date)
-      SCT_USER=$(whoami)
-      json_string='{ "sct_version": "'"${SCT_VERSION}"'", "date": "'"${SCT_DATE}"'", "Username": "'"$SCT_USER"'" }'
-      echo "$json_string" > ${FILESEGJSON}
-    else
-      echo "Using previous segmentation."
-      sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG_GM} -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-    fi
+    rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
+    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
-    # Segment gm of the spinal cord
-    sct_deepseg_gm -i ${file}$EXT -o $FILE_OUTPUT_SEG_GM -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-    SCT_VERSION=$(sct_version)
-    SCT_DATE=$(date)
-    SCT_USER=$(whoami)
-    json_string='{ "sct_version": "'"${SCT_VERSION}"'", "date": "'"${SCT_DATE}"'", "Username": "'"$SCT_USER"'" }'
-    echo "$json_string" > ${FILESEGJSON}
+    # Segment spinal cord
+    sct_deepseg_gm -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   fi
 }
 
@@ -137,12 +84,12 @@ check_if_exists()
   local acq="$1"
   local rec="$2"
   FILES_TO_CHECK=(
-    "anat/${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}_seg${EXT}"
-    "anat/${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}_gmseg${EXT}"
+    "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_seg${EXT}"
+    "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_gmseg${EXT}"
   )
   for file in ${FILES_TO_CHECK[@]}; do
-    if [[ ! -e "${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/$file" ]]; then
-      echo "${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
+    if [[ ! -e "${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SLASH_SESSION}/$file" ]]; then
+      echo "${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SLASH_SESSION}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
     fi
   done
 }
@@ -163,19 +110,15 @@ fi
 
 # Copy source images
 mkdir -p $SUBJECT
-rsync -avzh $PATH_DATA/$SUBJECT_SESSION $SUBJECT/
+rsync -avzh $PATH_DATA/$SUBJECT_SLASH_SESSION $SUBJECT/
 
 # Go to anat folder where all structural data are located
-cd ${SUBJECT_SESSION}/anat/
+cd ${SUBJECT_SLASH_SESSION}/anat/
 
-# Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
-SUBJECT="${SUBJECT}_${SESSION}"
+# Create new variable that will be used to fetch data according to BIDS standard
+SUBJECT_UNDERSCORE_SESSION="${SUBJECT}_${SESSION}"
 
-# Define variables
-# We do a substitution '/' --> '_' in case there is a subfolder 'ses-0X/'
-SUBJECT_SESSION="${SUBJECT//[\/]/_}"
-
-#Loop through the different acquisition and reconstruction options
+# Loop through the different acquisition and reconstruction options
 CONTRAST="T2starw"
 EXT=".nii.gz"
 ACQ=("acq-upperT" "acq-lowerT" "acq-LSE")
@@ -184,14 +127,14 @@ OVERWRITE_SEG=true
 
 for acq in "${ACQ[@]}";do
   for rec in "${REC[@]}";do
-    file=${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}
+    file=${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}
     echo "File: ${file}${EXT}"
     if [ -e "${file}${EXT}" ]; then
       echo "File found! Processing..."
-      segment_if_does_not_exist ${file} "t2s"
-      file_seg=$FILE_OUTPUT_SEG
+      segment_if_does_not_exist ${file}
+      file_seg=$FILESEG
       segment_gm_if_does_not_exist ${file}
-      file_gmseg=$FILE_OUTPUT_SEG_GM
+      file_gmseg=$FILESEG
       # Register the 'standard' segmentation to the 'navigated' data
       # TODO
       # Quantify ghosting
