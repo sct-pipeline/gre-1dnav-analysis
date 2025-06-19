@@ -43,18 +43,18 @@ segment_if_does_not_exist(){
   FILESEG="${file}_seg"
   FILESEGJSON="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.json"
   FILESEGMANUAL="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}-manual$EXT"
-  FILE_OUTPUT="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.nii.gz"
+  FILE_OUTPUT_SEG="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}$EXT"
   echo
   echo "Looking for manual segmentation: $FILESEGMANUAL"
   if [[ -e $FILESEGMANUAL ]]; then
     echo "Found! Using manual segmentation."
-    rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
-    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    rsync -avzh $FILESEGMANUAL ${FILE_OUTPUT_SEG}
+    sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG} -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
     # Segment spinal cord
     # sct_deepseg spinalcord -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
-    sct_deepseg_sc -i ${file}$EXT -c $contrast -o $FILE_OUTPUT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    sct_deepseg_sc -i ${file}$EXT -c $contrast -o $FILE_OUTPUT_SEG -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
 
   fi
 }
@@ -64,19 +64,18 @@ segment_gm_if_does_not_exist(){
   local file="$1"
   # Update global variable with segmentation file name
   FILESEG="${file}_gmseg"
-  FILESEGJSON="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.json"
   FILESEGMANUAL="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}-manual$EXT"
-  FILE_OUTPUT="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.nii.gz"
+  FILE_OUTPUT_SEG_GM="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}$EXT"
   echo
   echo "Looking for manual segmentation: $FILESEGMANUAL"
   if [[ -e $FILESEGMANUAL ]]; then
     echo "Found! Using manual segmentation."
-    rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
-    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    rsync -avzh $FILESEGMANUAL ${FILE_OUTPUT_SEG_GM}
+    sct_qc -i ${file}$EXT -s ${FILE_OUTPUT_SEG_GM} -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
     # Segment gm of the spinal cord
-    sct_deepseg_gm -i ${file}$EXT -o $FILE_OUTPUT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    sct_deepseg_gm -i ${file}$EXT -o $FILE_OUTPUT_SEG_GM -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
   fi
 }
 
@@ -134,8 +133,9 @@ for acq in "${ACQ[@]}";do
     if [ -e "${file}${EXT}" ]; then
       echo "File found! Processing..."
       segment_if_does_not_exist ${file} "t2s"
+      file_seg=$FILE_OUTPUT_SEG
       segment_gm_if_does_not_exist ${file}
-      file_seg=$FILESEG
+      file_gmseg=$FILE_OUTPUT_SEG_GM
       # Register the 'standard' segmentation to the 'navigated' data
       # TODO
       # Quantify ghosting
