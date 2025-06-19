@@ -37,6 +37,7 @@ start=`date +%s`
 # Check if manual segmentation already exists. If it does, copy it locally. If
 # it does not, perform seg.
 segment_if_does_not_exist(){
+  # Todo: Crash if folder does not exists
   local file="$1"
   local contrast="$2"
   # Update global variable with segmentation file name
@@ -157,6 +158,7 @@ if [[ ! -f "participants.tsv" ]]; then
 fi
 
 # Copy source images
+# Todo: Copy derivatives folder
 rsync -Ravzh $PATH_DATA/./$SUBJECT_SESSION_REL_PATH .
 
 # Go to anat folder where all structural data are located
