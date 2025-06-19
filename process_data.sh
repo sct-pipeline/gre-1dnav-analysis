@@ -25,7 +25,11 @@ set -e -o pipefail
 trap "echo Caught Keyboard Interrupt within script. Exiting now.; exit" INT
 
 # Retrieve input params
-SUBJECT_SESSION_REL_PATH=$1
+SUBJECT_SESSION=$1
+# Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
+# Can be improved, see: https://github.com/sct-pipeline/gre-1dnav-analysis/issues/3
+SUBJECT=`cut -d "/" -f1 <<< "$SUBJECT_SESSION"`
+SESSION=`cut -d "/" -f2 <<< "$SUBJECT_SESSION"`
 
 # get starting time:
 start=`date +%s`
@@ -158,15 +162,18 @@ if [[ ! -f "participants.tsv" ]]; then
 fi
 
 # Copy source images
-# Todo: Copy derivatives folder
-rsync -Ravzh $PATH_DATA/./$SUBJECT_SESSION_REL_PATH .
+mkdir -p $SUBJECT
+rsync -avzh $PATH_DATA/$SUBJECT_SESSION $SUBJECT/
 
 # Go to anat folder where all structural data are located
-cd "${SUBJECT_SESSION_REL_PATH}/anat/"
+cd ${SUBJECT_SESSION}/anat/
+
+# Update SUBJECT variable to the prefix for BIDS file names, considering the "ses" entity
+SUBJECT="${SUBJECT}_${SESSION}"
 
 # Define variables
 # We do a substitution '/' --> '_' in case there is a subfolder 'ses-0X/'
-SUBJECT_SESSION="${SUBJECT_SESSION_REL_PATH//[\/]/_}"
+SUBJECT_SESSION="${SUBJECT//[\/]/_}"
 
 #Loop through the different acquisition and reconstruction options
 CONTRAST="T2starw"
