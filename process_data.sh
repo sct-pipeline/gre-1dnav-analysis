@@ -65,8 +65,8 @@ check_if_exists()
     "anat/${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}_seg${EXT}"
   )
   for file in ${FILES_TO_CHECK[@]}; do
-    if [[ ! -e $file ]]; then
-      echo "${SUBJECT_SESSION_REL_PATH}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
+    if [[ ! -e "${PATH_DATA_PROCESSED}/${SUBJECT_SESSION_REL_PATH}/$file" ]]; then
+      echo "${PATH_DATA_PROCESSED}/${SUBJECT_SESSION_REL_PATH}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
     fi
   done
 }
@@ -79,6 +79,7 @@ sct_check_dependencies -short
 
 # Go to folder where data will be copied and processed
 cd $PATH_DATA_PROCESSED
+
 # Copy list of participants in processed data folder
 if [[ ! -f "participants.tsv" ]]; then
   rsync -avzh $PATH_DATA/participants.tsv .
@@ -88,7 +89,7 @@ fi
 rsync -Ravzh $PATH_DATA/./$SUBJECT_SESSION_REL_PATH .
 
 # Go to anat folder where all structural data are located
-cd ${SUBJECT_SESSION_REL_PATH}/anat/
+cd "${SUBJECT_SESSION_REL_PATH}/anat/"
 
 # Define variables
 # We do a substitution '/' --> '_' in case there is a subfolder 'ses-0X/'
@@ -106,7 +107,7 @@ for acq in "${ACQ[@]}";do
     echo "File: ${file}${EXT}"
     if [ -e "${file}${EXT}" ]; then
       echo "File found! Processing..."
-      # segment_if_does_not_exist ${file}
+      segment_if_does_not_exist ${file}
       file_seg=$FILESEG
       # Register the 'standard' segmentation to the 'navigated' data
       # TODO
