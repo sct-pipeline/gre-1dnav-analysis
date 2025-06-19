@@ -38,9 +38,12 @@ start=`date +%s`
 # it does not, perform seg.
 segment_if_does_not_exist(){
   local file="$1"
+  local contrast="$2"
   # Update global variable with segmentation file name
   FILESEG="${file}_seg"
-  FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}-manual$EXT"
+  FILESEGJSON="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.json"
+  FILESEGMANUAL="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}-manual$EXT"
+  FILE_OUTPUT="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.nii.gz"
   echo
   echo "Looking for manual segmentation: $FILESEGMANUAL"
   if [[ -e $FILESEGMANUAL ]]; then
@@ -50,7 +53,30 @@ segment_if_does_not_exist(){
   else
     echo "Not found. Proceeding with automatic segmentation."
     # Segment spinal cord
-    sct_deepseg spinalcord -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    # sct_deepseg spinalcord -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+    sct_deepseg_sc -i ${file}$EXT -c $contrast -o $FILE_OUTPUT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+
+  fi
+}
+
+
+segment_gm_if_does_not_exist(){
+  local file="$1"
+  # Update global variable with segmentation file name
+  FILESEG="${file}_gmseg"
+  FILESEGJSON="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.json"
+  FILESEGMANUAL="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}-manual$EXT"
+  FILE_OUTPUT="${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/anat/${FILESEG}.nii.gz"
+  echo
+  echo "Looking for manual segmentation: $FILESEGMANUAL"
+  if [[ -e $FILESEGMANUAL ]]; then
+    echo "Found! Using manual segmentation."
+    rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
+    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
+  else
+    echo "Not found. Proceeding with automatic segmentation."
+    # Segment gm of the spinal cord
+    sct_deepseg_gm -i ${file}$EXT -o $FILE_OUTPUT -qc ${PATH_QC} -qc-subject ${SUBJECT_SESSION}
   fi
 }
 
@@ -61,12 +87,12 @@ check_if_exists()
   local acq="$1"
   local rec="$2"
   FILES_TO_CHECK=(
-    "anat/${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}${EXT}"
     "anat/${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}_seg${EXT}"
+    "anat/${SUBJECT_SESSION}_${acq}_${rec}_${CONTRAST}_gmseg${EXT}"
   )
   for file in ${FILES_TO_CHECK[@]}; do
-    if [[ ! -e "${PATH_DATA_PROCESSED}/${SUBJECT_SESSION_REL_PATH}/$file" ]]; then
-      echo "${PATH_DATA_PROCESSED}/${SUBJECT_SESSION_REL_PATH}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
+    if [[ ! -e "${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/$file" ]]; then
+      echo "${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SESSION_REL_PATH}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
     fi
   done
 }
@@ -107,7 +133,8 @@ for acq in "${ACQ[@]}";do
     echo "File: ${file}${EXT}"
     if [ -e "${file}${EXT}" ]; then
       echo "File found! Processing..."
-      segment_if_does_not_exist ${file}
+      segment_if_does_not_exist ${file} "t2s"
+      segment_gm_if_does_not_exist ${file}
       file_seg=$FILESEG
       # Register the 'standard' segmentation to the 'navigated' data
       # TODO
