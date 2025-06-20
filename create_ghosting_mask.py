@@ -88,14 +88,14 @@ for z in range(nslices):
   y_posterior = np.min(np.argwhere(slice_bin[x_center, :])) if np.any(slice_bin > 0) else 0
   # Add an extension to the posterior limit
   posterior_extension_pix = convert_mm_to_pix(5, nii_binarized, axis=1)
-  y_limit = y_posterior - posterior_extension_pix
+  y_limit = y_posterior + posterior_extension_pix
 
   # Define the size of the mask
-  half_width_pix = convert_mm_to_pix(20, nii_binarized, axis=0)
+  half_width_pix = convert_mm_to_pix(15, nii_binarized, axis=0)
   x_start = x_center - half_width_pix
   x_end = x_center + half_width_pix
-  y_start = y_limit
-  y_end = data_binarized.shape[1]
+  y_start = 0
+  y_end = y_limit
 
   # Create the ghosting mask for this slice
   if z == 0:
