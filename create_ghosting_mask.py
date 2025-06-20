@@ -81,13 +81,13 @@ for z in range(nslices):
     continue  # No centerline found for this slice
 
   # Define the center of the mask with the centerline coordinates
-  y_center, x_center = centerline_coords.astype(int)
+  x_center = int(centerline_coords[0][0])
 
   # Find the posterior limit of the body in this slice
   slice_bin = data_binarized[:, :, z]
-  y_posterior = np.min(np.argwhere(slice_bin > 0)[:, 0]) if np.any(slice_bin > 0) else 0
+  y_posterior = np.min(np.argwhere(slice_bin[x_center, :])) if np.any(slice_bin > 0) else 0
   # Add an extension to the posterior limit
-  posterior_extension_pix = convert_mm_to_pix(10, nii_binarized, axis=1)
+  posterior_extension_pix = convert_mm_to_pix(5, nii_binarized, axis=1)
   y_limit = y_posterior - posterior_extension_pix
 
   # Define the size of the mask
