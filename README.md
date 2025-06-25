@@ -11,6 +11,9 @@ Some notes about the data:
 - With | without navigator: `*_rec-navigated` | `*_rec-standard`
 - Varying location: `acq-lowerT` | `acq-upperT` | `acq-LSE`
 
+Organization of files:
+
+
 ## Run analysis script
 
 TODO: complete below:

@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# Create a mask for ghosting analysis
+# 
+# How to use:
+#   python create_ghosting_mask.py <path_data> <subject_id> <session_id> <acquisition_region> <smooth_coeff> <bins>
+# 
+# Example:
+#   python create_ghosting_mask.py /path/to/data sub-01 ses-01 acq-upperT 2 3
+# 
+# This will target the following file:
+#  /path/to/data/sub-01/ses-01/sub-01_ses-01_acq-upperT_ TODO: please describe how to use and what the script does
+#
+
+# TODO; do not output in derivatives
+# TODO: indicate what is the output file ppl should use
 
 import os
 import sys
@@ -8,7 +22,7 @@ import argparse
 import subprocess
 
 parser = argparse.ArgumentParser(
-  description="Create a mask for ghosting analysis (2cm-wide band centered on the spinal cord)."
+  description="Create a mask for ghosting analysis. The mask is a wide band centered on the spinal cord."
 )
 parser.add_argument("path_data")
 parser.add_argument("subject_id")
@@ -17,6 +31,9 @@ parser.add_argument("acquisition_region", choices=["acq-upperT", "acq-lowerT", "
 parser.add_argument("smooth_coeff", type=int)
 parser.add_argument("bins", type=int)
 args = parser.parse_args()
+
+# TODO: add default values for the arguments
+# TODO: bins: clarify what this is for, and if it is needed-- also add a default value
 
 path_data = args.path_data
 subject = args.subject_id
@@ -40,6 +57,7 @@ ext = ".nii.gz"
 contrast = "T2starw"
 
 # Define file names
+# TODO: no need to create mask for the standard image bc will use single mask for both navigated and standard images
 file_standard = f"{subject}_{session}_{acq}_rec-standard_{contrast}"
 file_navigated = f"{subject}_{session}_{acq}_rec-navigated_{contrast}"
 file_seg = f"{file_navigated}_seg"
