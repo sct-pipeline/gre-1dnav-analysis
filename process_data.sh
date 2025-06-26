@@ -31,6 +31,22 @@ SUBJECT_SLASH_SESSION=$1
 SUBJECT=`cut -d "/" -f1 <<< "$SUBJECT_SLASH_SESSION"`
 SESSION=`cut -d "/" -f2 <<< "$SUBJECT_SLASH_SESSION"`
 
+# Get the path to the directory where all the scripts are located
+USER_HOME=$(eval echo ~${USER})
+for search_path in "$USER_HOME/Desktop" "$USER_HOME/Documents" "/Users/$USER"; do
+  found_path=$(find "$search_path" -maxdepth 6 -type d -name "gre-1dnav-analysis" 2>/dev/null | head -n 1)
+  if [[ -n "$found_path" ]] && [[ -f "$found_path/create_ghosting_mask.py" ]]; then
+    path_scripts="$found_path"
+    echo "Found gre-1dnav-analysis scripts at: $path_scripts"
+    break
+  fi
+done
+# Verify the path is valid
+if [[ ! -d "$path_scripts" ]] || [[ ! -f "$path_scripts/create_ghosting_mask.py" ]]; then
+  echo "Error: Could not find gre-1dnav-analysis directory with required scripts"
+  exit 1
+fi
+
 # get starting time:
 start=`date +%s`
 
@@ -75,6 +91,26 @@ segment_gm_if_does_not_exist(){
     # Segment spinal cord
     sct_deepseg_gm -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   fi
+}
+
+
+compute_ghosting()
+{
+  local path_data="$1"
+  local path_processed_data="$2"
+  local subject="$3"
+  local session="$4"
+  local acq="$5"
+  local rec="$6"
+  cd $path_scripts
+  #Create ghosting mask only on navigatd data
+  if [[ $rec == "rec-navigated" ]]; then
+    echo "Creating ghosting mask for ${subject} ${session} ${acq}"
+    ./create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq
+  fi
+  # Compute ghosting
+  # TODO
+  cd $PATH_DATA_PROCESSED/$SUBJECT_SLASH_SESSION/anat/
 }
 
 
@@ -138,7 +174,8 @@ for acq in "${ACQ[@]}";do
       # Register the 'standard' segmentation to the 'navigated' data
       # TODO
       # Quantify ghosting
-      # TODO
+      compute_ghosting "${PATH_DATA}" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}"
+      # Check if output files exist
       check_if_exists "${acq}" "${rec}"
     else
       echo "File not found. Skipping"

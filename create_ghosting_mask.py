@@ -5,22 +5,23 @@
 #
 # It requires four arguments:
 # 1. path_data: The path to the data directory.
-# 2. subject_id: The ID of the subject. (e.g., sub-01)
-# 3. session_id: The ID of the session. (e.g., ses-01)
-# 4. acquisition_region: The region of acquisition, which can be one of the following:
+# 2. path_processed_data : The path to the processed data directory (output path). Defaults to path_data if not provided.
+# 3. subject_id: The ID of the subject. (e.g., sub-01)
+# 4. session_id: The ID of the session. (e.g., ses-01)
+# 5. acquisition_region: The region of acquisition, which can be one of the following:
 #    - acq-upperT: Upper thoracic region
 #    - acq-lowerT: Lower thoracic region
 #    - acq-LSE: Lumbar-sacral region
 # It will create the following file:
-#   /PATH/TO/DATA/SUB-ID/SES-ID/anat/SUB-ID_SES-ID_ACQ-REGION_rec-navigated_T2starw_ghosting_mask.nii.gz
+#   /PATH/TO/PROCESSED/DATA/SUB-ID/SES-ID/anat/SUB-ID_SES-ID_ACQ-REGION_rec-navigated_T2starw_ghosting_mask.nii.gz
 # 
 # How to use:
-#   ./create_ghosting_mask.py <path_data> <subject_id> <session_id> <acquisition_region>
+#   ./create_ghosting_mask.py <path_data> <path_processed_data> <subject_id> <session_id> <acquisition_region>
 # 
 # Example:
-#   ./create_ghosting_mask.py /path/to/data sub-01 ses-01 acq-lowerT
+#   ./create_ghosting_mask.py /path/to/data /path/to/processed/data sub-01 ses-01 acq-lowerT
 # This will create the following file:
-#   /path/to/data/sub-01/ses-01/anat/sub-01_ses-01_acq-lowerT_rec-navigated_T2starw_ghosting_mask.nii.gz
+#   /path/to/processed/data/sub-01/ses-01/anat/sub-01_ses-01_acq-lowerT_rec-navigated_T2starw_ghosting_mask.nii.gz
 
 import os
 import sys
@@ -38,14 +39,17 @@ parser = argparse.ArgumentParser(
   description=f"Create a mask for ghosting analysis. The mask is a {int(width_mm/10)}cm-wide rectangle centered\
   on the spinal cord, extending from the posterior tip of the tissue to the posterior edge of the axial slice FOV (Field of View)."
 )
-parser.add_argument("path_data")
-parser.add_argument("subject_id")
-parser.add_argument("session_id")
-parser.add_argument("acquisition_region", choices=["acq-upperT", "acq-lowerT", "acq-LSE"])
+parser.add_argument("path_data", help="Path to the data directory.")
+parser.add_argument("path_processed_data", nargs='?', default=None, help="Path to the processed data directory (output path). Defaults to path_data if not provided.")
+parser.add_argument("subject_id", help="ID of the subject (e.g., sub-01).")
+parser.add_argument("session_id", help="ID of the session (e.g., ses-01).")
+parser.add_argument("acquisition_region", choices=["acq-upperT", "acq-lowerT", "acq-LSE"], 
+                    help="Region of acquisition: acq-upperT, acq-lowerT, or acq-LSE.")
 args = parser.parse_args()
 
 # Define arguments
 path_data = args.path_data
+path_processed_data = args.path_processed_data if args.path_processed_data else path_data
 subject = args.subject_id
 session = args.session_id
 acq = args.acquisition_region
@@ -67,11 +71,9 @@ file_centerline = f"{file_anat}_centerline"
 file_ghosting_mask = f"{file_anat}_ghosting_mask"
 
 # Define paths
-path_sub_ses = os.path.join(path_data, subject, session, "anat")
-path_derivatives_sub_ses = os.path.join(path_data, "derivatives", "labels", subject, session, "anat")
-path_anat= os.path.join(path_sub_ses, file_anat + ext)
-path_centerline = os.path.join(path_derivatives_sub_ses, file_centerline + ext)
-path_ghosting_mask = os.path.join(path_sub_ses, file_ghosting_mask + ext)
+path_anat= os.path.join(path_data, subject, session, "anat", file_anat + ext)
+path_centerline = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_centerline + ext)
+path_ghosting_mask = os.path.join(path_processed_data, subject, session, "anat", file_ghosting_mask + ext)
 
 # Get the centerline of the posterior tip of the tissue
 if not os.path.exists(path_centerline):
@@ -112,4 +114,4 @@ nii_ghosting_mask = nib.Nifti1Image(ghosting_mask, nii_anat.affine, nii_anat.hea
 nib.save(nii_ghosting_mask, path_ghosting_mask)
 
 # Print output path and instructions to view the results
-print(f"\nDone! The ghosting mask has been created and saved at:\n{path_ghosting_mask}\n\nTo view results, type:\nfsleyes {path_anat} -cm greyscale {path_ghosting_mask} -cm blue -a 50")
+print(f"\nDone! The ghosting mask has been created and saved at:\n{path_ghosting_mask}\n\nTo view results, type:\nfsleyes {path_anat} -cm greyscale {path_ghosting_mask} -cm blue -a 50\n")
