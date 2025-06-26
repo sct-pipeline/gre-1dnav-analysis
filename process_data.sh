@@ -65,7 +65,7 @@ segment_if_does_not_exist(){
   echo "Looking for manual segmentation: $FILESEGMANUAL"
   if [[ -e $FILESEGMANUAL ]]; then
     echo "Found! Using manual segmentation."
-    rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
+rsync -avzhP $FILESEGMANUAL ${FILESEG}$EXT
     sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
@@ -84,7 +84,7 @@ segment_gm_if_does_not_exist(){
   echo "Looking for manual segmentation: $FILESEGMANUAL"
   if [[ -e $FILESEGMANUAL ]]; then
     echo "Found! Using manual segmentation."
-    rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
+rsync -avzhP $FILESEGMANUAL ${FILESEG}$EXT
     sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
@@ -141,15 +141,23 @@ cd $PATH_DATA_PROCESSED
 
 # Copy list of participants in processed data folder
 if [[ ! -f "participants.tsv" ]]; then
-  rsync -avzh $PATH_DATA/participants.tsv .
+rsync -avzhP $PATH_DATA/participants.tsv .
 fi
 
 # Copy source images
 mkdir -p $SUBJECT
-rsync -avzh $PATH_DATA/$SUBJECT_SLASH_SESSION $SUBJECT/
+rsync -avzhP $PATH_DATA/$SUBJECT_SLASH_SESSION $SUBJECT/
 
 # Go to anat folder where all structural data are located
 cd ${SUBJECT_SLASH_SESSION}/anat/
+# Ensure all files are specifically unhidden (fix for macOS bug)
+for file in *.nii.gz; do
+  if [[ -f "$file" ]]; then
+    chmod 644 "$file"
+    chflags nohidden "$file"
+    echo "Fixed permissions for: $file"
+  fi
+done
 
 # Create new variable that will be used to fetch data according to BIDS standard
 SUBJECT_UNDERSCORE_SESSION="${SUBJECT}_${SESSION}"
