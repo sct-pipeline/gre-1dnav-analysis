@@ -109,7 +109,8 @@ compute_ghosting()
     ./create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq
   fi
   # Compute ghosting
-  # TODO
+  echo "Computing ghosting for ${subject} ${session} ${acq} ${rec}"
+  ./compute_ghosting.py $path_processed_data $subject $session $acq $rec
   cd $PATH_DATA_PROCESSED/$SUBJECT_SLASH_SESSION/anat/
 }
 

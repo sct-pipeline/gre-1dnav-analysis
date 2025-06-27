@@ -3,7 +3,7 @@
 # Create a mask for ghosting analysis. The mask is a 1cm-wide rectangle centered on the spinal cord,
 # extending from the posterior tip of the tissue to the posterior edge of the axial slice FOV (Field of View).
 #
-# It requires four arguments:
+# It requires five arguments:
 # 1. path_data: The path to the data directory.
 # 2. path_processed_data : The path to the processed data directory (output path). Defaults to path_data if not provided.
 # 3. subject_id: The ID of the subject. (e.g., sub-01)
