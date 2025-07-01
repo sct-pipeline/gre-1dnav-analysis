@@ -107,16 +107,18 @@ compute_snr_cnr(){
    local file_wmseg="$2"
    local file_gmseg="$3"
 
-   #split images, gm, and wm segs into individual slices to calculate SNR/CNR for each slice
-   mkdir -p ${PATH_DATA}/tmp/${SUBJECT_SLASH_SESSION}
-   sct_image -i ${file_gmseg}${EXT} -split z -o ${PATH_DATA}/tmp/${SUBJECT_SLASH_SESSION}/${file_gmseg}${EXT}
-   sct_image -i ${file_wmseg}${EXT} -split z -o ${PATH_DATA}/tmp/${SUBJECT_SLASH_SESSION}/${file}_wmseg${EXT}
-   sct_image -i ${file}${EXT} -split z -o ${PATH_DATA}/tmp/${SUBJECT_SLASH_SESSION}/${file}${EXT}
-   file_gmseg_ind="${PATH_DATA}/tmp/${SUBJECT_SLASH_SESSION}/${file_gmseg}"
-   file_wmseg_ind="${PATH_DATA}/tmp/${SUBJECT_SLASH_SESSION}/${file_wmseg}"
-   file_ind="${PATH_DATA}/tmp/${SUBJECT_SLASH_SESSION}/${file}"
+   # Split images, gm, and wm segs into individual slices to calculate SNR/CNR for each slice
+   PATH_TMP=${PATH_DATA_PROCESSED}/tmp
+   PATH_TMP_SUBJECT=${PATH_TMP}/${SUBJECT_SLASH_SESSION}
+   mkdir -p ${PATH_TMP_SUBJECT}
+   sct_image -i ${file_gmseg}${EXT} -split z -o "${PATH_TMP_SUBJECT}/${file_gmseg}${EXT}"
+   sct_image -i ${file_wmseg}${EXT} -split z -o "${PATH_TMP_SUBJECT}/${file}_wmseg${EXT}"
+   sct_image -i ${file}${EXT} -split z -o "${PATH_TMP_SUBJECT}/${file}${EXT}"
+   file_gmseg_ind="${PATH_TMP_SUBJECT}/${file_gmseg}"
+   file_wmseg_ind="${PATH_TMP_SUBJECT}/${file_wmseg}"
+   file_ind="${PATH_TMP_SUBJECT}/${file}"
 
-   #find the number of slices in image
+   # Find the number of slices in image
    num_slices=$(sct_image -i ${file}${EXT} -header fslhd | grep ^dim3 | awk '{print $2}')
    num_slices=$((num_slices-1))
 
@@ -124,7 +126,7 @@ compute_snr_cnr(){
    mkdir -p ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}
    mkdir -p ${PATH_RESULTS}/CNR/${SUBJECT_SLASH_SESSION}
 
-   #calculate SNR/CNR for each slice
+   # Calculate SNR/CNR for each slice
    echo "slice,ID,wm_mean,gm_mean,wm_std,CNR" > ${PATH_RESULTS}/CNR/${SUBJECT_SLASH_SESSION}/${file}_results.csv
    echo "slice,ID,wm_mean,wm_std,SNR" > ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_wm_results.csv
    echo "slice,ID,gm_mean,gm_std,SNR" > ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_gm_results.csv
@@ -142,7 +144,7 @@ compute_snr_cnr(){
      echo ${g}","${file_ind}","$gmM","$gmS","$SNR_gm >> ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_gm_results.csv
 
    done
-   rm -r ${PATH_DATA}/tmp/${SUBJECT_SLASH_SESSION}
+   rm -r ${PATH_TMP}
 
 }
 
