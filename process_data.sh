@@ -79,7 +79,7 @@ segment_gm_if_does_not_exist(){
   elif [[ -e $FILESSEGPATH ]]; then
     echo "Found segmentation!"
     rsync -avzh $FILESSEGPATH ${FILESEG}$EXT
-    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION} 
+    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
     # Segment spinal cord
@@ -118,17 +118,17 @@ compute_snr_cnr(){
 
    #find the number of slices in image
    num_slices=$(sct_image -i ${file}${EXT} -header fslhd | grep ^dim3 | awk '{print $2}')
-   num_slices=$((num_slices-1)) 
-      
+   num_slices=$((num_slices-1))
+
 
    mkdir -p ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}
    mkdir -p ${PATH_RESULTS}/CNR/${SUBJECT_SLASH_SESSION}
-     
+
    #calculate SNR/CNR for each slice
    echo "slice,ID,wm_mean,gm_mean,wm_std,CNR" > ${PATH_RESULTS}/CNR/${SUBJECT_SLASH_SESSION}/${file}_results.csv
    echo "slice,ID,wm_mean,wm_std,SNR" > ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_wm_results.csv
    echo "slice,ID,gm_mean,gm_std,SNR" > ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_gm_results.csv
-   for g in $(seq -w 0 ${num_slices}); do    
+   for g in $(seq -w 0 ${num_slices}); do
 
      gmM=$(fslstats ${file_ind}_Z00${g}${EXT} -k ${file_gmseg_ind}_Z00${g}${EXT} -M)
      gmS=$(fslstats ${file_ind}_Z00${g}${EXT} -k ${file_gmseg_ind}_Z00${g}${EXT} -S)
@@ -141,7 +141,7 @@ compute_snr_cnr(){
      echo ${g}","${file_ind}","$wmM","$wmS","$SNR_wm >> ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_wm_results.csv
      echo ${g}","${file_ind}","$gmM","$gmS","$SNR_gm >> ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_gm_results.csv
 
-   done 
+   done
    rm -r ${PATH_DATA}/tmp/${SUBJECT_SLASH_SESSION}
 
 }
@@ -156,10 +156,11 @@ check_if_exists()
   FILES_TO_CHECK=(
     "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_seg${EXT}"
     "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_gmseg${EXT}"
+    "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_wmseg${EXT}"
   )
   for file in ${FILES_TO_CHECK[@]}; do
-    if [[ ! -e "${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SLASH_SESSION}/$file" ]]; then
-      echo "${PATH_DATA_PROCESSED}/derivatives/labels/${SUBJECT_SLASH_SESSION}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
+    if [[ ! -e "${PATH_DATA_PROCESSED}/${SUBJECT_SLASH_SESSION}/$file" ]]; then
+      echo "${PATH_DATA_PROCESSED}/${SUBJECT_SLASH_SESSION}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
     fi
   done
 }
@@ -202,7 +203,7 @@ for acq in "${ACQ[@]}";do
     echo "File: ${file}${EXT}"
     if [ -e "${file}${EXT}" ]; then
       echo "File found! Processing..."
-      
+
       #always use the navigated segmentation (manually corrected) to calculate SNR/CNR for both standard and navigated images
       segment_if_does_not_exist ${file}
       file_seg=${file2}_seg
@@ -212,7 +213,7 @@ for acq in "${ACQ[@]}";do
       #calculate WM mask
       compute_wm_if_does_not_exist ${file} ${file_seg} ${file_gmseg}
       file_wmseg="${file}_wmseg"
-      
+
       #compute slicewise snr and cnr values
       compute_snr_cnr ${file} ${file_wmseg} ${file_gmseg}
 
