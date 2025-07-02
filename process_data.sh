@@ -100,11 +100,11 @@ compute_ghosting()
   # Create ghosting mask only on navigatd data
   if [[ $rec == "rec-navigated" ]]; then
     echo "Creating ghosting mask for ${subject} ${session} ${acq}"
-    ./../../../create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq
+    ./../../../../create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq
   fi
   # Compute ghosting
   echo "Computing ghosting for ${subject} ${session} ${acq} ${rec}"
-  ./../../../compute_ghosting.py $path_processed_data $subject $session $acq $rec
+  ./../../../../compute_ghosting.py $path_processed_data $subject $session $acq $rec
 }
 
 
@@ -131,7 +131,7 @@ check_if_exists()
 sct_check_dependencies -short
 
 # Copy files to the processed data folder
-copy_scripts ${PATH_SCRIPTS} ${PATH_DATA_PROCESSED} "process_data.sh"
+copy_scripts ${PATH_SCRIPTS} "${PATH_DATA_PROCESSED}/../" "process_data.sh"
 
 # Go to folder where data will be copied and processed
 cd $PATH_DATA_PROCESSED
@@ -164,10 +164,10 @@ for acq in "${ACQ[@]}";do
     echo "File: ${file}${EXT}"
     if [ -e "${file}${EXT}" ]; then
       echo "File found! Processing..."
-      segment_if_does_not_exist ${file}
-      file_seg=$FILESEG
-      segment_gm_if_does_not_exist ${file}
-      file_gmseg=$FILESEG
+      # segment_if_does_not_exist ${file}
+      # file_seg=$FILESEG
+      # segment_gm_if_does_not_exist ${file}
+      # file_gmseg=$FILESEG
       # Register the 'standard' segmentation to the 'navigated' data
       # TODO
       # Quantify ghosting
