@@ -18,7 +18,7 @@
 # 5. rec: The reconstruction type, which can be one of the following:
 #    - rec-standard: Standard reconstruction
 #    - rec-navigated: Navigated reconstruction
-# It will create and/or add a line to the following file:
+# It will create and/or add data to the following file:
 #   /PATH/TO/PROCESSED/DATA/ghosting_metrics.csv
 # 
 # How to use:
@@ -92,6 +92,8 @@ nslices = anat_data.shape[2]
 slice_wise_mean = np.zeros(nslices)
 for z in range(nslices):
     slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
+# TODO : Normalize the slice-wise means
+# TODO : If we want, we can also create a CSV file with the slice-wise means
 
 # Compute max and mean ghosting metrics
 max_ghosting = np.max(slice_wise_mean)
