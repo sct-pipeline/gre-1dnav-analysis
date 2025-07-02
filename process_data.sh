@@ -32,20 +32,7 @@ SUBJECT=`cut -d "/" -f1 <<< "$SUBJECT_SLASH_SESSION"`
 SESSION=`cut -d "/" -f2 <<< "$SUBJECT_SLASH_SESSION"`
 
 # Get the path to the directory where all the scripts are located
-USER_HOME=$(eval echo ~${USER})
-for search_path in "$USER_HOME/Desktop" "$USER_HOME/Documents" "/Users/$USER"; do
-  found_path=$(find "$search_path" -maxdepth 6 -type d -name "gre-1dnav-analysis" 2>/dev/null | head -n 1)
-  if [[ -n "$found_path" ]] && [[ -f "$found_path/create_ghosting_mask.py" ]]; then
-    path_scripts="$found_path"
-    echo "Found gre-1dnav-analysis scripts at: $path_scripts"
-    break
-  fi
-done
-# Verify the path is valid
-if [[ ! -d "$path_scripts" ]] || [[ ! -f "$path_scripts/create_ghosting_mask.py" ]]; then
-  echo "Error: Could not find gre-1dnav-analysis directory with required scripts"
-  exit 1
-fi
+PATH_SCRIPTS="$(dirname "$(realpath "./process_data.sh")")"
 
 # get starting time:
 start=`date +%s`
@@ -53,6 +40,14 @@ start=`date +%s`
 
 # FUNCTIONS
 # ==============================================================================
+
+# Copy all selected scripts in a folder to an output folder
+copy_scripts() {
+  local path_scripts="$1"
+  local path_output="$2"
+  local exeption_file="$3"
+  find "$path_scripts" -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) ! -name "$exeption_file" -exec rsync -avzh {} "$path_output" \;
+}
 
 # Check if manual segmentation already exists. If it does, copy it locally. If
 # it does not, perform seg.
@@ -102,16 +97,14 @@ compute_ghosting()
   local session="$4"
   local acq="$5"
   local rec="$6"
-  cd $path_scripts
   # Create ghosting mask only on navigatd data
   if [[ $rec == "rec-navigated" ]]; then
     echo "Creating ghosting mask for ${subject} ${session} ${acq}"
-    ./create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq
+    ./../../../create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq
   fi
   # Compute ghosting
   echo "Computing ghosting for ${subject} ${session} ${acq} ${rec}"
-  ./compute_ghosting.py $path_processed_data $subject $session $acq $rec
-  cd $PATH_DATA_PROCESSED/$SUBJECT_SLASH_SESSION/anat/
+  ./../../../compute_ghosting.py $path_processed_data $subject $session $acq $rec
 }
 
 
@@ -136,6 +129,9 @@ check_if_exists()
 # ==============================================================================
 # Display useful info for the log, such as SCT version, RAM and CPU cores available
 sct_check_dependencies -short
+
+# Copy files to the processed data folder
+copy_scripts ${PATH_SCRIPTS} ${PATH_DATA_PROCESSED} "process_data.sh"
 
 # Go to folder where data will be copied and processed
 cd $PATH_DATA_PROCESSED
