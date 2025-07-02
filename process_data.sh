@@ -164,10 +164,10 @@ for acq in "${ACQ[@]}";do
     echo "File: ${file}${EXT}"
     if [ -e "${file}${EXT}" ]; then
       echo "File found! Processing..."
-      # segment_if_does_not_exist ${file}
-      # file_seg=$FILESEG
-      # segment_gm_if_does_not_exist ${file}
-      # file_gmseg=$FILESEG
+      segment_if_does_not_exist ${file}
+      file_seg=$FILESEG
+      segment_gm_if_does_not_exist ${file}
+      file_gmseg=$FILESEG
       # Register the 'standard' segmentation to the 'navigated' data
       # TODO
       # Quantify ghosting
