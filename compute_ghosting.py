@@ -24,6 +24,8 @@
 # How to use:
 #   ./compute_ghosting.py <path_processed_data> <subject_id> <session_id> <acquisition_region> <rec>
 
+#TODO: change output_path to results folder
+
 import os
 import sys
 import numpy as np

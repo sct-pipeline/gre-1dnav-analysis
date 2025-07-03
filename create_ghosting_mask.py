@@ -67,17 +67,17 @@ def convert_mm_to_pix(mm_value, nii_img, axis=0):
 # Define file names
 file_anat = f"{subject}_{session}_{acq}_rec-navigated_{contrast}"
 file_seg = f"{file_anat}_seg"
-file_centerline = f"{file_anat}_centerline"
+file_body_post_tip = f"{file_anat}_body-posterior-tip"
 file_ghosting_mask = f"{file_anat}_ghosting_mask"
 
 # Define paths
 path_anat= os.path.join(path_data, subject, session, "anat", file_anat + ext)
-path_centerline = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_centerline + ext)
+path_body_post_tip = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ext)
 path_ghosting_mask = os.path.join(path_processed_data, subject, session, "anat", file_ghosting_mask + ext)
 
-# Get the centerline of the posterior tip of the tissue
-if not os.path.exists(path_centerline):
-  subprocess.run(['sct_get_centerline', '-i', path_anat, '-method', 'viewer', '-gap', '20.0', '-o', path_centerline], text=True, check=True)
+# Identify the posterior tip of the body if it does not already exist
+if not os.path.exists(path_body_post_tip):
+  subprocess.run(['sct_get_centerline', '-i', path_anat, '-method', 'viewer', '-gap', '20.0', '-o', path_body_post_tip], text=True, check=True)
 
 # Create the ghosting mask
 # Loop through each slice along the z-axis
@@ -85,17 +85,17 @@ nii_anat = nib.load(path_anat)
 data_anat = nii_anat.get_fdata()
 nslices = data_anat.shape[2] 
 for z in range(nslices):
-  # Find the coordinates of the centerline for this slice
-  nii_centerline = nib.load(path_centerline)
-  data_centreline = nii_centerline.get_fdata()
-  centerline_coords = np.argwhere(data_centreline[:, :, z] > 0)
-  if centerline_coords.size == 0:
-    continue  # No centerline found for this slice
+  # Find the coordinates of the body posterior tip for this slice
+  nii_body_post_tip = nib.load(path_body_post_tip)
+  data_centreline = nii_body_post_tip.get_fdata()
+  body_post_tip_coords = np.argwhere(data_centreline[:, :, z] > 0)
+  if body_post_tip_coords.size == 0:
+    continue  # No tip found for this slice
 
-  # Define the center of the mask with the centerline coordinates
-  x_center = int(centerline_coords[0][0])
-  # Define the y-axis limit based on the centerline coordinates
-  y_limit = int(centerline_coords[0][1])
+  # Define the center of the mask with the tip coordinates
+  x_center = int(body_post_tip_coords[0][0])
+  # Define the y-axis limit based on the tip coordinates
+  y_limit = int(body_post_tip_coords[0][1])
 
   # Define the size of the mask
   half_width_pix = convert_mm_to_pix(width_mm, nii_anat, axis=0)
