@@ -29,8 +29,12 @@ import numpy as np
 import nibabel as nib
 import argparse
 import subprocess
+import json
+from datetime import datetime
 
 # Define variables
+username = subprocess.run(['whoami'], capture_output=True, text=True).stdout.strip()
+sct_version = subprocess.run(['sct_version'], capture_output=True, text=True).stdout.strip()
 width_mm = 10  # Width of the mask in millimeters
 ext = ".nii.gz"
 contrast = "T2starw"
@@ -73,11 +77,34 @@ file_ghosting_mask = f"{file_anat}_ghosting_mask"
 # Define paths
 path_anat= os.path.join(path_data, subject, session, "anat", file_anat + ext)
 path_body_post_tip = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ext)
+path_body_post_tip_csv = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ".csv")
+path_body_post_tip_json = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ".json")
 path_ghosting_mask = os.path.join(path_processed_data, subject, session, "anat", file_ghosting_mask + ext)
 
-# Identify the posterior tip of the body if it does not already exist
+# Identify the posterior tip of the body if it does not exist
 if not os.path.exists(path_body_post_tip):
   subprocess.run(['sct_get_centerline', '-i', path_anat, '-method', 'viewer', '-gap', '20.0', '-o', path_body_post_tip], text=True, check=True)
+# Remove the CSV file if it exists
+if os.path.exists(path_body_post_tip_csv):
+  os.remove(path_body_post_tip_csv)
+# Create the JSON file if it does not exist
+if not os.path.exists(path_body_post_tip_json):
+  with open(path_body_post_tip_json, 'w') as f:
+    json_content = {
+      "SpatialReference": "orig",
+      "GeneratedBy": [
+        {
+          "Name": "sct_get_centerline -method viewer",
+          "Version": f"SCT {sct_version}"
+        },
+        {
+          "Name": "Manual",
+          "Author": username,
+          "Date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+      ]
+    }
+    json.dump(json_content, f, indent=4)
 
 # Create the ghosting mask
 # Loop through each slice along the z-axis
