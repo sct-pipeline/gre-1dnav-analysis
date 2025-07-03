@@ -19,12 +19,10 @@
 #    - rec-standard: Standard reconstruction
 #    - rec-navigated: Navigated reconstruction
 # It will create and/or add data to the following file:
-#   /PATH/TO/PROCESSED/DATA/ghosting_metrics.csv
+#   /PATH/TO/PROCESSED/DATA/results/ghosting_metrics.csv
 # 
 # How to use:
 #   ./compute_ghosting.py <path_processed_data> <subject_id> <session_id> <acquisition_region> <rec>
-
-#TODO: change output_path to results folder
 
 import os
 import sys
@@ -102,7 +100,7 @@ max_ghosting = np.max(slice_wise_mean)
 mean_ghosting = np.mean(slice_wise_mean)
 
 # Create or update the CSV file
-csv_path = os.path.join(path_processed_data, "ghosting_metrics.csv")
+csv_path = os.path.join(path_processed_data, "results", "ghosting_metrics.csv")
 
 # Read existing data if file exists
 existing_data = {}
