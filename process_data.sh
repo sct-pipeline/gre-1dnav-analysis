@@ -54,7 +54,7 @@ copy_scripts() {
 segment_if_does_not_exist(){
   local file="$1"
   # Update global variable with segmentation file name
-  FILESEG="${file}_seg"
+  FILESEG="${file}_label-SC_seg"
   FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}$EXT"
   echo
   echo "Looking for manual segmentation: $FILESEGMANUAL"
@@ -73,7 +73,7 @@ segment_if_does_not_exist(){
 segment_gm_if_does_not_exist(){
   local file="$1"
   # Update global variable with segmentation file name
-  FILESEG="${file}_gmseg"
+  FILESEG="${file}_label-GM_seg"
   FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}$EXT"
   echo
   echo "Looking for manual segmentation: $FILESEGMANUAL"

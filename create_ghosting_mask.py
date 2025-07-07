@@ -71,7 +71,7 @@ def convert_mm_to_pix(mm_value, nii_img, axis=0):
 # Define file names
 file_anat = f"{subject}_{session}_{acq}_rec-navigated_{contrast}"
 file_seg = f"{file_anat}_seg"
-file_body_post_tip = f"{file_anat}_body-posterior-tip"
+file_body_post_tip = f"{file_anat}_label-bodyPosteriorTip_label"
 file_ghosting_mask = f"{file_anat}_ghosting_mask"
 
 # Define paths
