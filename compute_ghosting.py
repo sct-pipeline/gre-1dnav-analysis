@@ -70,7 +70,7 @@ def format_value(val):
 
 # Define file names
 file_anat = f"{subject}_{session}_{acq}_{rec}_{contrast}"
-file_ghosting_mask = f"{subject}_{session}_{acq}_rec-navigated_{contrast}_ghosting_mask"
+file_ghosting_mask = f"{subject}_{session}_{acq}_rec-navigated_{contrast}_ghostingMask"
 
 # Define paths
 path_sub_session = os.path.join(path_processed_data, subject, session, "anat")

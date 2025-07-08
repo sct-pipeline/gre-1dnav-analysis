@@ -72,7 +72,7 @@ def convert_mm_to_pix(mm_value, nii_img, axis=0):
 file_anat = f"{subject}_{session}_{acq}_rec-navigated_{contrast}"
 file_seg = f"{file_anat}_seg"
 file_body_post_tip = f"{file_anat}_label-bodyPosteriorTip_label"
-file_ghosting_mask = f"{file_anat}_ghosting_mask"
+file_ghosting_mask = f"{file_anat}_ghostingMask"
 
 # Define paths
 path_anat= os.path.join(path_data, subject, session, "anat", file_anat + ext)
