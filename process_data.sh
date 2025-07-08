@@ -45,8 +45,8 @@ start=`date +%s`
 copy_scripts() {
   local path_scripts="$1"
   local path_output="$2"
-  local exeption_file="$3"
-  find "$path_scripts" -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) ! -name "$exeption_file" -exec rsync -avzh {} "$path_output" \;
+  local exception_file="$3"
+  find "$path_scripts" -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) ! -name "$exception_file" -exec rsync -avzh {} "$path_output" \;
 }
 
 # Check if manual segmentation already exists. If it does, copy it locally. If
