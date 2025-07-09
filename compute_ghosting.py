@@ -91,13 +91,17 @@ anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
 nslices = anat_data.shape[2] 
 slice_wise_mean = np.zeros(nslices)
 for z in range(nslices):
-    slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
+    val = np.ma.mean(anat_masked[:, :, z])
+    if np.ma.is_masked(val):
+        slice_wise_mean[z] = np.nan
+    else:
+        slice_wise_mean[z] = val
 # TODO : Normalize the slice-wise means
 # TODO : If we want, we can also create a CSV file with the slice-wise means
 
 # Compute max and mean ghosting metrics
-max_ghosting = np.max(slice_wise_mean)
-mean_ghosting = np.mean(slice_wise_mean)
+max_ghosting = np.nanmax(slice_wise_mean)
+mean_ghosting = np.nanmean(slice_wise_mean)
 
 # Create or update the CSV file
 csv_path = os.path.join(path_processed_data, "..", "results", "ghosting_metrics.csv")
