@@ -117,7 +117,7 @@ for slice in range(nslices):
         for path in [path_body_post_tip, path_body_post_tip_json]:
             if os.path.exists(path):
                 os.remove(path)
-        sys.exit("To ensure that the ghosting mask covers all axial slices, please press the up arrow key (↑) before selecting the first label. " \
+        raise RuntimeError("To ensure that the ghosting mask covers all axial slices, please press the up arrow key (↑) before selecting the first label. " \
         "Please try again.")
 
 # Create the ghosting mask

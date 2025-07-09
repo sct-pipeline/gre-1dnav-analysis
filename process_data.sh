@@ -176,7 +176,7 @@ compute_ghosting()
   # Create ghosting mask only on navigatd data
   if [[ $rec == "rec-navigated" ]]; then
     echo "Creating ghosting mask for ${subject} ${session} ${acq}"
-    ${PATH_DATA_PROCESSED}/../create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq
+    ${PATH_DATA_PROCESSED}/../create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq || exit
   fi
   # Compute ghosting
   echo "Computing ghosting for ${subject} ${session} ${acq} ${rec}"
