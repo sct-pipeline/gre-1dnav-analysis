@@ -105,6 +105,19 @@ if not os.path.exists(path_body_post_tip_json):
       ]
     }
     json.dump(json_content, f, indent=4)
+# Check if any axial slice is empty
+mask_nii = nib.load(path_body_post_tip)
+mask_data = mask_nii.get_fdata()
+nslices = mask_data.shape[2]
+for slice in range(nslices):
+    if np.sum(mask_data[:, :, slice]) == 0:
+        print(f"Warning: Empty mask detected in slice {slice}. Removing label files and exiting.")
+        # Remove the label files
+        for path in [path_body_post_tip, path_body_post_tip_json]:
+            if os.path.exists(path):
+                os.remove(path)
+        sys.exit("To ensure that the ghosting mask covers all axial slices, please press the up arrow key (↑) before selecting the first label. " \
+        "Please try again.")
 
 # Create the ghosting mask
 # Loop through each slice along the z-axis

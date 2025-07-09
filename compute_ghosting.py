@@ -91,11 +91,7 @@ anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
 nslices = anat_data.shape[2] 
 slice_wise_mean = np.zeros(nslices)
 for z in range(nslices):
-    val = np.ma.mean(anat_masked[:, :, z])
-    if np.ma.is_masked(val):
-        slice_wise_mean[z] = np.nan
-    else:
-        slice_wise_mean[z] = val
+    slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
 # TODO : Normalize the slice-wise means
 # TODO : If we want, we can also create a CSV file with the slice-wise means
 
