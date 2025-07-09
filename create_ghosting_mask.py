@@ -14,10 +14,10 @@
 #    - acq-LSE: Lumbar-sacral region
 # It will create the following file:
 #   /PATH/TO/PROCESSED/DATA/SUB-ID/SES-ID/anat/SUB-ID_SES-ID_ACQ-REGION_rec-navigated_T2starw_ghosting_mask.nii.gz
-# 
+#
 # How to use:
 #   ./create_ghosting_mask.py <path_data> <path_processed_data> <subject_id> <session_id> <acquisition_region>
-# 
+#
 # Example:
 #   ./create_ghosting_mask.py /path/to/data /path/to/processed/data sub-01 ses-01 acq-lowerT
 # This will create the following file:
@@ -48,7 +48,7 @@ parser.add_argument("path_processed_data", nargs='?', default=None,
                     help="Path to the processed data directory (output path). Defaults to path_data if not provided.")
 parser.add_argument("subject_id", help="ID of the subject (e.g., sub-01).")
 parser.add_argument("session_id", help="ID of the session (e.g., ses-01).")
-parser.add_argument("acquisition_region", choices=["acq-upperT", "acq-lowerT", "acq-LSE"], 
+parser.add_argument("acquisition_region", choices=["acq-upperT", "acq-lowerT", "acq-LSE"],
                     help="Region of acquisition: acq-upperT, acq-lowerT, or acq-LSE.")
 args = parser.parse_args()
 
@@ -112,7 +112,7 @@ mask_data = mask_nii.get_fdata()
 nslices = mask_data.shape[2]
 for slice in range(nslices):
     if np.sum(mask_data[:, :, slice]) == 0:
-        print(f"Warning: Empty mask detected in slice {slice}. Removing label files and exiting.")
+        print(f"Error: Empty mask detected in slice {slice}. Removing label files and exiting.")
         # Remove the label files
         for path in [path_body_post_tip, path_body_post_tip_json]:
             if os.path.exists(path):
@@ -124,7 +124,7 @@ for slice in range(nslices):
 # Loop through each slice along the z-axis
 nii_anat = nib.load(path_anat)
 data_anat = nii_anat.get_fdata()
-nslices = data_anat.shape[2] 
+nslices = data_anat.shape[2]
 for z in range(nslices):
   # Find the coordinates of the body posterior tip for this slice
   nii_body_post_tip = nib.load(path_body_post_tip)
