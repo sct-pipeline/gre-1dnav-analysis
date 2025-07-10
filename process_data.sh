@@ -31,6 +31,9 @@ SUBJECT_SLASH_SESSION=$1
 SUBJECT=`cut -d "/" -f1 <<< "$SUBJECT_SLASH_SESSION"`
 SESSION=`cut -d "/" -f2 <<< "$SUBJECT_SLASH_SESSION"`
 
+# Get the path to the directory where all the scripts are located
+PATH_SCRIPTS="$(dirname "$(realpath "./process_data.sh")")"
+
 # get starting time:
 start=`date +%s`
 
@@ -38,23 +41,32 @@ start=`date +%s`
 # FUNCTIONS
 # ==============================================================================
 
-# Check if manual segmentation already exists. If it does, copy it locally. If
-# it does not, perform seg.
+# Copy all selected scripts in a folder to an output folder
+copy_scripts() {
+  local path_scripts="$1"
+  local path_output="$2"
+  local exception_file="$3"
+  find "$path_scripts" -maxdepth 1 \( -name "*.py" -o -name "*.sh" \) ! -name "$exception_file" -exec rsync -avzh {} "$path_output" \;
+}
+
+
+# Check if manual segmentation already exists. If it does, copy it locally. If it does not, perform seg.
 segment_if_does_not_exist(){
   local file="$1"
   # Update global variable with segmentation file name
   FILESEG="${file}_seg"
-  FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}-manual$EXT"
-  FILESSEGPATH="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}$EXT"
+  FILESEGMANUAL="${file}_seg-manual"
+  PATHSEG="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}$EXT"
+  PATHSEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEGMANUAL}$EXT"
   echo
-  echo "Looking for manual segmentation: $FILESEGMANUAL"
-  if [[ -e $FILESEGMANUAL ]]; then
-    echo "Found! Using manual segmentation."
-    rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
-    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
-  elif [[ -e $FILESSEGPATH ]]; then
-    echo "Found segmentation!"
-    rsync -avzh $FILESSEGPATH ${FILESEG}$EXT
+  echo "Looking for segmentation"
+  if [[ -e $PATHSEGMANUAL ]]; then
+    echo "Found! Using manual segmentation $PATHSEGMANUAL"
+    rsync -avzh $PATHSEGMANUAL ${FILESEGMANUAL}$EXT
+    sct_qc -i ${file}$EXT -s ${FILESEGMANUAL}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
+  elif [[ -e $PATHSEG ]]; then
+    echo "Found! Using segmentation $PATHSEG"
+    rsync -avzh $PATHSEG ${FILESEG}$EXT
     sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_sc -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
@@ -68,39 +80,43 @@ segment_gm_if_does_not_exist(){
   local file="$1"
   # Update global variable with segmentation file name
   FILESEG="${file}_gmseg"
-  FILESEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}-manual$EXT"
-  FILESSEGPATH="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}$EXT"
+  FILESEGMANUAL="${file}_gmseg-manual"
+  PATHSEG="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}$EXT"
+  PATHSEGMANUAL="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEGMANUAL}$EXT"
   echo
-  echo "Looking for manual segmentation: $FILESEGMANUAL"
-  if [[ -e $FILESEGMANUAL ]]; then
-    echo "Found! Using manual segmentation."
-    rsync -avzh $FILESEGMANUAL ${FILESEG}$EXT
-    sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
-  elif [[ -e $FILESSEGPATH ]]; then
-    echo "Found segmentation!"
-    rsync -avzh $FILESSEGPATH ${FILESEG}$EXT
+  echo "Looking for segmentation"
+  if [[ -e $PATHSEGMANUAL ]]; then
+    echo "Found! Using manual segmentation $PATHSEGMANUAL"
+    rsync -avzh $PATHSEGMANUAL ${FILESEGMANUAL}$EXT
+    sct_qc -i ${file}$EXT -s ${FILESEGMANUAL}$EXT -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
+  elif [[ -e $PATHSEG ]]; then
+    echo "Found! Using segmentation $PATHSEG"
+    rsync -avzh $PATHSEG ${FILESEG}$EXT
     sct_qc -i ${file}$EXT -s ${FILESEG}$EXT -p sct_deepseg_gm -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   else
     echo "Not found. Proceeding with automatic segmentation."
-    # Segment spinal cord
+    # Segment gray matter
     sct_deepseg_gm -i ${file}$EXT -qc ${PATH_QC} -qc-subject ${SUBJECT_UNDERSCORE_SESSION}
   fi
 }
+
 
 compute_wm_if_does_not_exist(){
    local file="$1"
    local file_seg="$2"
    local file_gmseg="$3"
-   FILESEG="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${file}_wmseg$EXT"
-   if [[ -e $FILESEG ]]; then
-       echo "Found Segmentation!"
-       rsync -avzh $FILESEG ${file}_wmseg$EXT
+   FILESEG="${file}_wmseg"
+   PATHSEG="${PATH_DATA}/derivatives/labels/${SUBJECT_SLASH_SESSION}/anat/${FILESEG}$EXT"
+   if [[ -e $PATHSEG ]]; then
+      echo "Found! Using segmentation $PATHSEG"
+      rsync -avzh $PATHSEG ${file}_wmseg$EXT
    else
-       echo "Not found. Calculate WM mask."
-       sct_maths -i ${file_seg}${EXT} -sub ${file_gmseg}${EXT} -o $FILESEG
-       rsync -avzh $FILESEG ${file}_wmseg$EXT
+      echo "Not found. Calculate WM mask."
+      sct_maths -i ${file_seg}${EXT} -sub ${file_gmseg}${EXT} -o $PATHSEG
+      rsync -avzh $PATHSEG ${file}_wmseg$EXT
    fi
 }
+
 
 compute_snr_cnr(){
    local file="$1"
@@ -149,17 +165,44 @@ compute_snr_cnr(){
 }
 
 
+compute_ghosting()
+{
+  local path_data="$1"
+  local path_processed_data="$2"
+  local subject="$3"
+  local session="$4"
+  local acq="$5"
+  local rec="$6"
+  # Create ghosting mask only on navigatd data
+  if [[ $rec == "rec-navigated" ]]; then
+    echo "Creating ghosting mask for ${subject} ${session} ${acq}"
+    ${PATH_DATA_PROCESSED}/../create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq || exit
+  fi
+  # Compute ghosting
+  echo "Computing ghosting for ${subject} ${session} ${acq} ${rec}"
+  ${PATH_DATA_PROCESSED}/../compute_ghosting.py $path_processed_data $subject $session $acq $rec
+}
+
 
 # Verify presence of output files and write log file if error
 check_if_exists()
 {
   local acq="$1"
   local rec="$2"
-  FILES_TO_CHECK=(
-    "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_seg${EXT}"
-    "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_gmseg${EXT}"
+  if [[ $rec == "rec-navigated" ]]; then
+    FILES_TO_CHECK=(
+    "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_seg-manual${EXT}"
+    "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_gmseg-manual${EXT}"
     "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_wmseg${EXT}"
-  )
+    "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_ghosting_mask${EXT}"
+    )
+  else
+    FILES_TO_CHECK=(
+      "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_seg${EXT}"
+      "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_gmseg${EXT}"
+      "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_wmseg${EXT}"
+    )
+  fi
   for file in ${FILES_TO_CHECK[@]}; do
     if [[ ! -e "${PATH_DATA_PROCESSED}/${SUBJECT_SLASH_SESSION}/$file" ]]; then
       echo "${PATH_DATA_PROCESSED}/${SUBJECT_SLASH_SESSION}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
@@ -172,6 +215,9 @@ check_if_exists()
 # ==============================================================================
 # Display useful info for the log, such as SCT version, RAM and CPU cores available
 sct_check_dependencies -short
+
+# Copy files to the processed data folder
+copy_scripts ${PATH_SCRIPTS} "${PATH_DATA_PROCESSED}/../" "process_data.sh"
 
 # Go to folder where data will be copied and processed
 cd $PATH_DATA_PROCESSED
@@ -201,26 +247,27 @@ OVERWRITE_SEG=true
 for acq in "${ACQ[@]}";do
   for rec in "${REC[@]}";do
     file=${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}
-    file2=${SUBJECT_UNDERSCORE_SESSION}_${acq}_rec-navigated_${CONTRAST}
     echo "File: ${file}${EXT}"
     if [ -e "${file}${EXT}" ]; then
       echo "File found! Processing..."
 
-      #always use the navigated segmentation (manually corrected) to calculate SNR/CNR for both standard and navigated images
+      # Always use the navigated segmentation (manually corrected) to calculate SNR/CNR for both standard and navigated images
       segment_if_does_not_exist ${file}
-      file_seg=${file2}_seg
+      file_seg=${SUBJECT_UNDERSCORE_SESSION}_${acq}_rec-navigated_${CONTRAST}_seg-manual
       segment_gm_if_does_not_exist ${file}
-      file_gmseg=${file2}_gmseg
+      file_gmseg=${SUBJECT_UNDERSCORE_SESSION}_${acq}_rec-navigated_${CONTRAST}_gmseg-manual
 
-      #calculate WM mask
+      # Calculate WM mask
       compute_wm_if_does_not_exist ${file} ${file_seg} ${file_gmseg}
       file_wmseg="${file}_wmseg"
 
-      #compute slicewise snr and cnr values
+      # Compute slicewise snr and cnr values
       compute_snr_cnr ${file} ${file_wmseg} ${file_gmseg}
 
       # Quantify ghosting
-      # TODO
+      compute_ghosting "${PATH_DATA}" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}"
+
+      # Check if output files exist
       check_if_exists "${acq}" "${rec}"
     else
       echo "File not found. Skipping"
