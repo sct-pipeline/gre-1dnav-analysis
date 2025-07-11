@@ -169,7 +169,7 @@ compute_ghosting()
   # Create ghosting mask only on navigatd data
   if [[ $rec == "rec-navigated" ]]; then
     echo "Creating ghosting mask for ${subject} ${session} ${acq}"
-    ${PATH_DATA_PROCESSED}/../create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq
+    ${PATH_DATA_PROCESSED}/../create_ghosting_mask.py $path_data $path_processed_data $subject $session $acq || exit
   fi
   # Compute ghosting
   echo "Computing ghosting for ${subject} ${session} ${acq} ${rec}"
@@ -195,7 +195,7 @@ check_if_exists()
       "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_gmseg${EXT}"
       "anat/${SUBJECT_UNDERSCORE_SESSION}_${acq}_${rec}_${CONTRAST}_wmseg${EXT}"
     )
-  fi 
+  fi
   for file in ${FILES_TO_CHECK[@]}; do
     if [[ ! -e "${PATH_DATA_PROCESSED}/${SUBJECT_SLASH_SESSION}/$file" ]]; then
       echo "${PATH_DATA_PROCESSED}/${SUBJECT_SLASH_SESSION}/${file} does not exist" >> "${PATH_LOG}/_error_check_output_files.log"
