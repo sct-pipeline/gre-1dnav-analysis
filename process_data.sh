@@ -118,6 +118,29 @@ compute_wm_if_does_not_exist(){
 }
 
 
+mean(){
+   local sum=0
+   for val in "$@";do
+      sum=$(echo "$sum + $val" | bc)
+   done
+   echo "scale=5;$sum/$#" | bc
+}
+
+
+median(){
+   local sorted=($(printf "%s\n" "$@" | sort -n))
+   local count=${#sorted[@]}
+   local mid=$((count/2))
+
+   if (( count %2 == 1 )); then
+      echo "${sorted[$mid]}"
+   else
+      echo "scale=5; (${sorted[$mid-1]} + ${sorted[$mid]})/2" | bc
+   fi
+
+}
+
+
 compute_snr_cnr(){
    local file="$1"
    local file_wmseg="$2"
@@ -134,6 +157,11 @@ compute_snr_cnr(){
    file_wmseg_ind="${PATH_TMP_SUBJECT}/${file_wmseg}"
    file_ind="${PATH_TMP_SUBJECT}/${file}"
 
+   # Initialize arrays 
+   CNR_array=()
+   SNR_wm_array=()
+   SNR_gm_array=()
+
    # Find the number of slices in image
    num_slices=$(sct_image -i ${file}${EXT} -header fslhd | grep ^dim3 | awk '{print $2}')
    num_slices=$((num_slices-1))
@@ -143,23 +171,55 @@ compute_snr_cnr(){
    mkdir -p ${PATH_RESULTS}/CNR/${SUBJECT_SLASH_SESSION}
 
    # Calculate SNR/CNR for each slice
-   echo "slice,ID,wm_mean,gm_mean,wm_std,CNR" > ${PATH_RESULTS}/CNR/${SUBJECT_SLASH_SESSION}/${file}_results.csv
-   echo "slice,ID,wm_mean,wm_std,SNR" > ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_wm_results.csv
-   echo "slice,ID,gm_mean,gm_std,SNR" > ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_gm_results.csv
    for g in $(seq -w 0 ${num_slices}); do
 
      gmM=$(fslstats ${file_ind}_Z00${g}${EXT} -k ${file_gmseg_ind}_Z00${g}${EXT} -M)
      gmS=$(fslstats ${file_ind}_Z00${g}${EXT} -k ${file_gmseg_ind}_Z00${g}${EXT} -S)
      wmM=$(fslstats ${file_ind}_Z00${g}${EXT} -k ${file_wmseg_ind}_Z00${g}${EXT} -M)
      wmS=$(fslstats ${file_ind}_Z00${g}${EXT} -k ${file_wmseg_ind}_Z00${g}${EXT} -S)
-     CNR=$(echo "scale=5; ($wmM - $gmM)/ $wmS" | bc)
-     SNR_wm=$(echo "scale=5; $wmM/$wmS" | bc)
-     SNR_gm=$(echo "scale=5; $gmM/$gmS" | bc)
-     echo ${g}","${file_ind}","$wmM","$gmM","$wmS","$CNR >> ${PATH_RESULTS}/CNR/${SUBJECT_SLASH_SESSION}/${file}_results.csv
-     echo ${g}","${file_ind}","$wmM","$wmS","$SNR_wm >> ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_wm_results.csv
-     echo ${g}","${file_ind}","$gmM","$gmS","$SNR_gm >> ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_gm_results.csv
 
+     # Check if GM mask is empty (i.e. gM is 0)
+     if (( $(echo "$gmM != 0" | bc) )); then
+     
+        # Find absolute value of the wm - gm difference 
+        CNR_top=$(echo "scale=5; ($wmM - $gmM)" | bc)
+        abs_CNR_top=$(echo "scale=5; sqrt($CNR_top * $CNR_top)" | bc)
+
+        CNR=$(echo "scale=5; $abs_CNR_top/ $wmS" | bc)
+        SNR_wm=$(echo "scale=5; $wmM/$wmS" | bc)
+        SNR_gm=$(echo "scale=5; $gmM/$gmS" | bc)
+        
+       # Append to arrays
+       CNR_array+=($CNR)
+       SNR_wm_array+=($SNR_wm)
+       SNR_gm_array+=($SNR_gm) 
+    else
+       echo "gm mask does not exist, skipping SNR and CNR calculations for slice $g"
+    fi
    done
+
+   #Compute mean of all slices
+    mean_cnr=$(mean "${CNR_array[@]}") 
+    mean_snr_wm=$(mean "${SNR_wm_array[@]}")
+    mean_snr_gm=$(mean "${SNR_gm_array[@]}")
+
+    #Compute median of all slices
+    median_cnr=$(median "${CNR_array[@]}")
+    median_snr_wm=$(median "${SNR_wm_array[@]}")
+    median_snr_gm=$(median "${SNR_gm_array[@]}")
+
+    # Write to csv file - separate based on standard and navigated
+    search_word="navigated"
+    if [[ "$file" == *"$search_word"* ]]; then
+       echo ${file}","$mean_cnr","$median_cnr >> ${PATH_RESULTS}/CNR_nav_results.csv
+       echo ${file}","$mean_snr_wm","$median_snr_wm >> ${PATH_RESULTS}/SNR_nav_wm_results.csv
+       echo ${file}","$mean_snr_gm","$median_snr_gm >> ${PATH_RESULTS}/SNR_nav_gm_results.csv
+    else
+       echo ${file},"$mean_cnr","$median_cnr" >> ${PATH_RESULTS}/CNR_stand_results.csv
+       echo ${file},"$mean_snr_wm","$median_snr_wm" >> ${PATH_RESULTS}/SNR_stand_wm_results.csv
+       echo ${file},"$mean_snr_gm","$median_snr_gm" >> ${PATH_RESULTS}/SNR_stand_gm_results.csv
+    fi
+  
    rm -r ${PATH_TMP}
 
 }
