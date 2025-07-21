@@ -129,7 +129,6 @@ compute_snr_cnr(){
     echo ${g}","${file}","$SNR_gm >> ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}/${file}_gm_results.csv
   done
   rm -r ${PATH_TMP}
-
 }
 
 
@@ -224,7 +223,9 @@ for acq in "${ACQ[@]}";do
       # Compute slicewise snr and cnr values
       compute_snr_cnr ${file} ${file_wmseg} ${file_gmseg}
       # Quantify ghosting
-      compute_ghosting "${PATH_DATA}" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}"
+      compute_ghosting ${PATH_DATA} ${PATH_DATA_PROCESSED} ${SUBJECT} ${SESSION} ${acq} ${rec}
+      # Compute STD
+      ${PATH_DATA_PROCESSED}/../compute_std.py ${PATH_DATA_PROCESSED} ${SUBJECT} ${SESSION} ${acq} ${rec} ${file_wmseg}
       # Check if output files exist
       check_if_exists "${acq}" "${rec}"
     else
