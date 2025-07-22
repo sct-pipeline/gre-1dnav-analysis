@@ -56,8 +56,7 @@ acq = args.acquisition_region
 rec = args.rec
 
 if not os.path.isdir(path_processed_data):
-  print(f"Error: Provided path does not exist.\nProvided path: {path_processed_data}")
-  sys.exit(1)
+  raise RuntimeError(f"Error: Provided path does not exist.\nProvided path: {path_processed_data}")
 
 # Define functions
 def format_value(val):
@@ -68,87 +67,89 @@ def format_value(val):
             except (ValueError, TypeError):
                 return 'nan'
 
-# Define file names
-file_anat = f"{subject}_{session}_{acq}_{rec}_{contrast}"
-file_ghosting_mask = f"{subject}_{session}_{acq}_rec-navigated_{contrast}_ghostingMask"
+if __name__ == "__main__":
 
-# Define paths
-path_sub_session = os.path.join(path_processed_data, subject, session, "anat")
-path_anat = os.path.join(path_sub_session, file_anat + ext)
-path_ghosting_mask = os.path.join(path_sub_session, file_ghosting_mask + ext)
+    # Define file names
+    file_anat = f"{subject}_{session}_{acq}_{rec}_{contrast}"
+    file_ghosting_mask = f"{subject}_{session}_{acq}_rec-navigated_{contrast}_ghostingMask"
 
-# Load the nifti files
-mask_nii = nib.load(path_ghosting_mask)
-mask_data = mask_nii.get_fdata()
-anat_nii = nib.load(path_anat)
-anat_data = anat_nii.get_fdata()
+    # Define paths
+    path_sub_session = os.path.join(path_processed_data, subject, session, "anat")
+    path_anat = os.path.join(path_sub_session, file_anat + ext)
+    path_ghosting_mask = os.path.join(path_sub_session, file_ghosting_mask + ext)
 
-# Mask the anatomical data
-# This will keep only the data inside the ghosting mask
-anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
+    # Load the nifti files
+    mask_nii = nib.load(path_ghosting_mask)
+    mask_data = mask_nii.get_fdata()
+    anat_nii = nib.load(path_anat)
+    anat_data = anat_nii.get_fdata()
 
-# Compute slice-wise mean
-nslices = anat_data.shape[2] 
-slice_wise_mean = np.zeros(nslices)
-for z in range(nslices):
-    slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
-# TODO : Normalize the slice-wise means
-# TODO : If we want, we can also create a CSV file with the slice-wise means
+    # Mask the anatomical data
+    # This will keep only the data inside the ghosting mask
+    anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
 
-# Compute max and mean ghosting metrics
-max_ghosting = np.nanmax(slice_wise_mean)
-mean_ghosting = np.nanmean(slice_wise_mean)
+    # Compute slice-wise mean
+    nslices = anat_data.shape[2] 
+    slice_wise_mean = np.zeros(nslices)
+    for z in range(nslices):
+        slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
+    # TODO : Normalize the slice-wise means
+    # TODO : If we want, we can also create a CSV file with the slice-wise means
 
-# Create or update the CSV file
-csv_path = os.path.join(path_processed_data, "..", "results", "ghosting_metrics.csv")
+    # Compute max and mean ghosting metrics
+    max_ghosting = np.nanmax(slice_wise_mean)
+    mean_ghosting = np.nanmean(slice_wise_mean)
 
-# Read existing data if file exists
-existing_data = {}
-header_written = False
-if os.path.exists(csv_path):
-    with open(csv_path, 'r') as f:
-        lines = f.readlines()
-        if lines:
-            header_written = True
-            for line in lines[1:]:  # Skip header
-                if line.strip():
-                    parts = line.strip().split(",")
-                    if len(parts) >= 5:
-                        subject_session = parts[0]
-                        existing_data[subject_session] = {
-                            'max_standard': parts[1],
-                            'max_navigated': parts[2], 
-                            'mean_standard': parts[3],
-                            'mean_navigated': parts[4]
-                        }
+    # Create or update the CSV file
+    csv_path = os.path.join(path_processed_data, "..", "results", "ghosting_metrics.csv")
 
-# Update data for current subject/session
-subject_session = f"{subject}/{session}"
-if subject_session not in existing_data:
-    existing_data[subject_session] = {
-        'max_standard': 'nan',
-        'max_navigated': 'nan',
-        'mean_standard': 'nan', 
-        'mean_navigated': 'nan'
-    }
+    # Read existing data if file exists
+    existing_data = {}
+    header_written = False
+    if os.path.exists(csv_path):
+        with open(csv_path, 'r') as f:
+            lines = f.readlines()
+            if lines:
+                header_written = True
+                for line in lines[1:]:  # Skip header
+                    if line.strip():
+                        parts = line.strip().split(",")
+                        if len(parts) >= 5:
+                            subject_session = parts[0]
+                            existing_data[subject_session] = {
+                                'max_standard': parts[1],
+                                'max_navigated': parts[2], 
+                                'mean_standard': parts[3],
+                                'mean_navigated': parts[4]
+                            }
 
-# Update with current measurements
-if rec == "rec-standard":
-    existing_data[subject_session]['max_standard'] = max_ghosting
-    existing_data[subject_session]['mean_standard'] = mean_ghosting
-else:  # rec == "rec-navigated"
-    existing_data[subject_session]['max_navigated'] = max_ghosting
-    existing_data[subject_session]['mean_navigated'] = mean_ghosting
+    # Update data for current subject/session
+    subject_session = f"{subject}/{session}"
+    if subject_session not in existing_data:
+        existing_data[subject_session] = {
+            'max_standard': 'nan',
+            'max_navigated': 'nan',
+            'mean_standard': 'nan', 
+            'mean_navigated': 'nan'
+        }
 
-# Write the complete file
-with open(csv_path, 'w') as f:
-    # Write header
-    f.write("Subject-ID/Session-ID,max rec-standard,max rec-navigated,mean rec-standard,mean rec-navigated\n")
-    # Write data
-    for sub_ses, data in existing_data.items():
-        max_std = format_value(data['max_standard'])
-        max_nav = format_value(data['max_navigated'])
-        mean_std = format_value(data['mean_standard'])
-        mean_nav = format_value(data['mean_navigated'])
-        
-        f.write(f"{sub_ses},{max_std},{max_nav},{mean_std},{mean_nav}\n")
+    # Update with current measurements
+    if rec == "rec-standard":
+        existing_data[subject_session]['max_standard'] = max_ghosting
+        existing_data[subject_session]['mean_standard'] = mean_ghosting
+    else:  # rec == "rec-navigated"
+        existing_data[subject_session]['max_navigated'] = max_ghosting
+        existing_data[subject_session]['mean_navigated'] = mean_ghosting
+
+    # Write the complete file
+    with open(csv_path, 'w') as f:
+        # Write header
+        f.write("Subject-ID/Session-ID,max rec-standard,max rec-navigated,mean rec-standard,mean rec-navigated\n")
+        # Write data
+        for sub_ses, data in existing_data.items():
+            max_std = format_value(data['max_standard'])
+            max_nav = format_value(data['max_navigated'])
+            mean_std = format_value(data['mean_standard'])
+            mean_nav = format_value(data['mean_navigated'])
+            
+            f.write(f"{sub_ses},{max_std},{max_nav},{mean_std},{mean_nav}\n")
