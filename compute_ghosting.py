@@ -60,12 +60,12 @@ if not os.path.isdir(path_processed_data):
 
 # Define functions
 def format_value(val):
-            if val == 'nan' or val is None:
-                return 'nan'
-            try:
-                return f"{float(val):.6f}"
-            except (ValueError, TypeError):
-                return 'nan'
+    if val == 'nan' or val is None:
+        return 'nan'
+    try:
+        return f"{float(val):.6f}"
+    except (ValueError, TypeError):
+        return 'nan'
             
 def write_csv(path_processed_data, subject, session, rec, max_ghosting='nan', mean_ghosting='nan'):
     # Create or update the CSV file
