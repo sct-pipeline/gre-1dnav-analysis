@@ -59,7 +59,7 @@ rec = args.rec
 wm_mask = args.wm_mask
 
 if not os.path.isdir(path_processed_data):
-  raise RuntimeError(f"Error: Provided path does not exist.\nProvided path: {path_processed_data}")
+  raise RuntimeError(f"The provided path does not exist.\nProvided path: {path_processed_data}")
 
 # Define functions
 def format_value(val):
