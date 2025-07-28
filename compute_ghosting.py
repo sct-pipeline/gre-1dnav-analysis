@@ -66,40 +66,8 @@ def format_value(val):
                 return f"{float(val):.6f}"
             except (ValueError, TypeError):
                 return 'nan'
-
-if __name__ == "__main__":
-
-    # Define file names
-    file_anat = f"{subject}_{session}_{acq}_{rec}_{contrast}"
-    file_ghosting_mask = f"{subject}_{session}_{acq}_rec-navigated_{contrast}_ghostingMask"
-
-    # Define paths
-    path_sub_session = os.path.join(path_processed_data, subject, session, "anat")
-    path_anat = os.path.join(path_sub_session, file_anat + ext)
-    path_ghosting_mask = os.path.join(path_sub_session, file_ghosting_mask + ext)
-
-    # Load the nifti files
-    mask_nii = nib.load(path_ghosting_mask)
-    mask_data = mask_nii.get_fdata()
-    anat_nii = nib.load(path_anat)
-    anat_data = anat_nii.get_fdata()
-
-    # Mask the anatomical data
-    # This will keep only the data inside the ghosting mask
-    anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
-
-    # Compute slice-wise mean
-    nslices = anat_data.shape[2] 
-    slice_wise_mean = np.zeros(nslices)
-    for z in range(nslices):
-        slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
-    # TODO : Normalize the slice-wise means
-    # TODO : If we want, we can also create a CSV file with the slice-wise means
-
-    # Compute max and mean ghosting metrics
-    max_ghosting = np.nanmax(slice_wise_mean)
-    mean_ghosting = np.nanmean(slice_wise_mean)
-
+            
+def write_csv(path_processed_data, subject, session, rec, max_ghosting='nan', mean_ghosting='nan'):
     # Create or update the CSV file
     csv_path = os.path.join(path_processed_data, "..", "results", "ghosting_metrics.csv")
 
@@ -153,3 +121,42 @@ if __name__ == "__main__":
             mean_nav = format_value(data['mean_navigated'])
             
             f.write(f"{sub_ses},{max_std},{max_nav},{mean_std},{mean_nav}\n")
+
+def main():
+    # Define file names
+    file_anat = f"{subject}_{session}_{acq}_{rec}_{contrast}"
+    file_ghosting_mask = f"{subject}_{session}_{acq}_rec-navigated_{contrast}_ghostingMask"
+
+    # Define paths
+    path_sub_session = os.path.join(path_processed_data, subject, session, "anat")
+    path_anat = os.path.join(path_sub_session, file_anat + ext)
+    path_ghosting_mask = os.path.join(path_sub_session, file_ghosting_mask + ext)
+
+    # Load the nifti files
+    mask_nii = nib.load(path_ghosting_mask)
+    mask_data = mask_nii.get_fdata()
+    anat_nii = nib.load(path_anat)
+    anat_data = anat_nii.get_fdata()
+
+    # Mask the anatomical data
+    # This will keep only the data inside the ghosting mask
+    anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
+
+    # Compute slice-wise mean
+    nslices = anat_data.shape[2] 
+    slice_wise_mean = np.zeros(nslices)
+    for z in range(nslices):
+        slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
+    # TODO : Normalize the slice-wise means
+    # TODO : If we want, we can also create a CSV file with the slice-wise means
+
+    # Compute max and mean ghosting metrics
+    max_ghosting = np.nanmax(slice_wise_mean)
+    mean_ghosting = np.nanmean(slice_wise_mean)
+
+    # Write the results to the CSV file
+    write_csv(path_processed_data, subject, session, rec, max_ghosting, mean_ghosting)
+
+
+if __name__ == "__main__":
+    main()

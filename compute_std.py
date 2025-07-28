@@ -70,39 +70,8 @@ def format_value(val):
             except (ValueError, TypeError):
                 return 'nan'
 
-if __name__ == "__main__":
-
-    # Define file names
-    file_anat = f"{subject}_{session}_{acq}_{rec}_{contrast}"
-    file_wm_mask = wm_mask
-
-    # Define paths
-    path_sub_session = os.path.join(path_processed_data, subject, session, "anat")
-    path_anat = os.path.join(path_sub_session, file_anat + ext)
-    path_wm_mask = os.path.join(path_sub_session, file_wm_mask + ext)
-
-    # Load the nifti files
-    mask_nii = nib.load(path_wm_mask)
-    mask_data = mask_nii.get_fdata()
-    anat_nii = nib.load(path_anat)
-    anat_data = anat_nii.get_fdata()
-
-    # Mask the anatomical data
-    # This will keep only the data inside the WM mask
-    anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
-
-    # Compute slice-wise mean
-    nslices = anat_data.shape[2] 
-    slice_wise_std = np.zeros(nslices)
-    for z in range(nslices):
-        slice_wise_std[z] = np.ma.std(anat_masked[:, :, z])
-    # TODO : If we want, we can also create a CSV file with the slice-wise STDs
-
-    # Compute max and mean STDs
-    max_std = np.max(slice_wise_std)
-    mean_std = np.mean(slice_wise_std)
-
-    # Create or update the CSV file
+def write_csv(path_processed_data, subject, session, rec, max_std='nan', mean_std='nan'):
+     # Create or update the CSV file
     csv_path = os.path.join(path_processed_data, "..", "results", "std.csv")
 
     # Read existing data if file exists
@@ -155,3 +124,40 @@ if __name__ == "__main__":
             mean_nav = format_value(data['mean_navigated'])
             
             f.write(f"{sub_ses},{max_std},{max_nav},{mean_std},{mean_nav}\n")
+
+def main():
+    # Define file names
+    file_anat = f"{subject}_{session}_{acq}_{rec}_{contrast}"
+    file_wm_mask = wm_mask
+
+    # Define paths
+    path_sub_session = os.path.join(path_processed_data, subject, session, "anat")
+    path_anat = os.path.join(path_sub_session, file_anat + ext)
+    path_wm_mask = os.path.join(path_sub_session, file_wm_mask + ext)
+
+    # Load the nifti files
+    mask_nii = nib.load(path_wm_mask)
+    mask_data = mask_nii.get_fdata()
+    anat_nii = nib.load(path_anat)
+    anat_data = anat_nii.get_fdata()
+
+    # Mask the anatomical data
+    # This will keep only the data inside the WM mask
+    anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
+
+    # Compute slice-wise standard deviation
+    nslices = anat_data.shape[2] 
+    slice_wise_std = np.zeros(nslices)
+    for z in range(nslices):
+        slice_wise_std[z] = np.ma.std(anat_masked[:, :, z])
+
+    # Compute max and mean STDs
+    max_std = np.max(slice_wise_std)
+    mean_std = np.mean(slice_wise_std)
+
+    # Write the results to the CSV file
+    write_csv(path_processed_data, subject, session, rec, max_std, mean_std)
+
+
+if __name__ == "__main__":
+    main()

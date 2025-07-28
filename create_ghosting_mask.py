@@ -65,25 +65,12 @@ if not os.path.isdir(path_data):
 
 # Define functions
 def convert_mm_to_pix(mm_value, nii_img, axis=0):
-    """Convert a value in millimeters to pixels."""
-    pixdim = nii_img.header.get_zooms()[axis]
-    return int(round((mm_value) / pixdim))
+  """Convert a value in millimeters to pixels."""
+  pixdim = nii_img.header.get_zooms()[axis]
+  return int(round((mm_value) / pixdim))
 
-if __name__ == "__main__":
-
-  # Define file names
-  file_anat = f"{subject}_{session}_{acq}_rec-navigated_{contrast}"
-  file_seg = f"{file_anat}_seg"
-  file_body_post_tip = f"{file_anat}_label-bodyPosteriorTip_label"
-  file_ghosting_mask = f"{file_anat}_ghostingMask"
-
-  # Define paths
-  path_anat= os.path.join(path_data, subject, session, "anat", file_anat + ext)
-  path_body_post_tip = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ext)
-  path_body_post_tip_csv = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ".csv")
-  path_body_post_tip_json = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ".json")
-  path_ghosting_mask = os.path.join(path_processed_data, subject, session, "anat", file_ghosting_mask + ext)
-
+def identify_body_posterior_tip(path_anat, path_body_post_tip, path_body_post_tip_csv=None, path_body_post_tip_json=None):
+  """Identify the posterior tip of the body using SCT."""
   # Identify the posterior tip of the body if it does not exist
   if not os.path.exists(path_body_post_tip):
     subprocess.run(['sct_get_centerline', '-i', path_anat, '-method', 'viewer', '-gap', '20.0', '-o', path_body_post_tip], text=True, check=True)
@@ -121,7 +108,9 @@ if __name__ == "__main__":
                   os.remove(path)
           raise RuntimeError("To ensure that the ghosting mask covers all axial slices, please press the up arrow key (↑) before selecting the first label. " \
           "Please try again.")
-
+        
+def create_ghosting_mask(path_anat, path_body_post_tip, path_ghosting_mask):
+  """Create the ghosting mask."""
   # Create the ghosting mask
   # Loop through each slice along the z-axis
   nii_anat = nib.load(path_anat)
@@ -158,3 +147,27 @@ if __name__ == "__main__":
 
   # Print output path and instructions to view the results
   print(f"\nDone! The ghosting mask has been created and saved at:\n{path_ghosting_mask}\n\nTo view results, type:\nfsleyes {path_anat} -cm greyscale {path_ghosting_mask} -cm blue -a 50\n")
+  
+def main():
+  # Define file names
+  file_anat = f"{subject}_{session}_{acq}_rec-navigated_{contrast}"
+  file_seg = f"{file_anat}_seg"
+  file_body_post_tip = f"{file_anat}_label-bodyPosteriorTip_label"
+  file_ghosting_mask = f"{file_anat}_ghostingMask"
+
+  # Define paths
+  path_anat = os.path.join(path_data, subject, session, "anat", file_anat + ext)
+  path_body_post_tip = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ext)
+  path_body_post_tip_csv = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ".csv")
+  path_body_post_tip_json = os.path.join(path_data, "derivatives", "labels", subject, session, "anat", file_body_post_tip + ".json")
+  path_ghosting_mask = os.path.join(path_processed_data, subject, session, "anat", file_ghosting_mask + ext)
+
+  # Identify the posterior tip of the body
+  identify_body_posterior_tip(path_anat, path_body_post_tip, path_body_post_tip_csv, path_body_post_tip_json)
+
+  # Create the ghosting mask
+  create_ghosting_mask(path_anat, path_body_post_tip, path_ghosting_mask)
+
+
+if __name__ == "__main__":
+  main()
