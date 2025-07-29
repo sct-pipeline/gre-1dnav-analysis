@@ -143,11 +143,11 @@ compute_ghosting()
     # Create ghosting mask only on navigatd data
     if [[ $rec == "rec-navigated" ]]; then
         echo "Creating ghosting mask for ${subject} ${session} ${acq}"
-        "${PATH_DATA_PROCESSED}/../create_ghosting_mask.py" "${path_data}" "${path_processed_data}" "${subject}" "${session}" "${acq}" || exit
+        "${PATH_SCRIPTS}/create_ghosting_mask.py" "${path_data}" "${path_processed_data}" "${subject}" "${session}" "${acq}" || exit
     fi
     # Compute ghosting
     echo "Computing ghosting for ${subject} ${session} ${acq} ${rec}"
-    "${PATH_DATA_PROCESSED}/../compute_ghosting.py" "${path_processed_data}" "${subject}" "${session}" "${acq}" "${rec}"
+    "${PATH_SCRIPTS}/compute_ghosting.py" "${path_processed_data}" "${subject}" "${session}" "${acq}" "${rec}"
 }
 
 
@@ -224,7 +224,7 @@ for acq in "${ACQ[@]}";do
             # Quantify ghosting
             compute_ghosting "${PATH_DATA}" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}"
             # Compute STD
-            "${PATH_DATA_PROCESSED}/../compute_std.py" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}" "${file_wmseg}"
+            "${PATH_SCRIPTS}/compute_std.py" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}" "${file_wmseg}"
             # Check if output files exist
             check_if_exists "${acq}" "${rec}"
         else
