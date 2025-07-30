@@ -167,8 +167,6 @@ compute_snr_cnr(){
    num_slices=$((num_slices-1))
 
 
-   mkdir -p ${PATH_RESULTS}/SNR/${SUBJECT_SLASH_SESSION}
-   mkdir -p ${PATH_RESULTS}/CNR/${SUBJECT_SLASH_SESSION}
 
    # Calculate SNR/CNR for each slice
    for g in $(seq -w 0 ${num_slices}); do
