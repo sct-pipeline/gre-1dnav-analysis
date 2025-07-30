@@ -224,7 +224,7 @@ for acq in "${ACQ[@]}";do
             # Quantify ghosting
             compute_ghosting "${PATH_DATA}" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}"
             # Compute STD
-            "${PATH_SCRIPTS}/compute_std.py" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}" "${file_wmseg}"
+            "${PATH_SCRIPTS}/compute_wm_std.py" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}" "${file_wmseg}"
             # Check if output files exist
             check_if_exists "${acq}" "${rec}"
         else

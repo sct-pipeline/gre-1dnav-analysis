@@ -72,7 +72,7 @@ def format_value(val):
 
 def write_csv(path_processed_data, subject, session, rec, max_std='nan', mean_std='nan'):
      # Create or update the CSV file
-    csv_path = os.path.join(path_processed_data, "..", "results", "std.csv")
+    csv_path = os.path.join(path_processed_data, "..", "results", "wm_std.csv")
 
     # Read existing data if file exists
     existing_data = {}
