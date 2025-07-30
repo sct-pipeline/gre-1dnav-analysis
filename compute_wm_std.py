@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 #
-# Quantifies ghosting by computing the slice-wise mean inside the ghosting mask. The maximum and mean of those
+# Quantifies standard deviation (STD) by computing the slice-wise STD inside the white matter (WM) mask. The maximum and mean of those
 # metrics are combined in a single CSV file with the following structure:
 #
 # | Subject-ID/Session-ID | max rec-standard | max rec-navigated | mean rec-standard | mean rec-navigated |
 # |     sub-01/ses-01     |     0.000000     |      0.000000     |      0.000000     |      0.000000      |
 # |     sub-02/ses-01     |     0.000000     |      0.000000     |      0.000000     |      0.000000      |
 #
-# It requires five arguments:
+# It requires six arguments:
 # 1. path_processed_data : The path to the processed data directory (output path).
 # 2. subject_id: The ID of the subject. (e.g., sub-01)
 # 3. session_id: The ID of the session. (e.g., ses-01)
@@ -18,11 +18,12 @@
 # 5. rec: The reconstruction type, which can be one of the following:
 #    - rec-standard: Standard reconstruction
 #    - rec-navigated: Navigated reconstruction
+# 6. wm_mask: The white matter mask in which the STD is computed
 # It will create and/or add data to the following file:
-#   /PATH/TO/PROCESSED/DATA/results/ghosting_metrics.csv
+#   /PATH/TO/PROCESSED/DATA/results/std.csv
 # 
 # How to use:
-#   ./compute_ghosting.py <path_processed_data> <subject_id> <session_id> <acquisition_region> <rec>
+#   ./compute_std.py <path_processed_data> <subject_id> <session_id> <acquisition_region> <rec> <wm_mask>
 
 import os
 import sys
@@ -35,8 +36,8 @@ ext = ".nii.gz"
 contrast = "T2starw"
 
 parser = argparse.ArgumentParser(
-  description="Quantifies ghosting by computing the slice-wise mean inside the ghosting mask. The maximum and mean of those metrics are\
-  combined in a single CSV file with the following columns:\
+  description="Quantifies standard deviation (STD) by computing the slice-wise STD inside the white matter (WM) mask. The maximum and\
+  mean of those metrics are combined in a single CSV file with the following columns:\
   | Subject-ID/Session-ID | max rec-standard | max rec-navigated | mean rec-standard | mean rec-navigated |"
 )
 parser.add_argument("path_processed_data", help="The path to the processed data directory (output path).")
@@ -46,6 +47,7 @@ parser.add_argument("acquisition_region", choices=["acq-upperT", "acq-lowerT", "
                     help="Region of acquisition: acq-upperT, acq-lowerT, or acq-LSE.")
 parser.add_argument("rec", choices=["rec-standard", "rec-navigated"],
                     help="Reconstruction type: rec-standard or rec-navigated.")
+parser.add_argument("wm_mask", help="The white matter mask in which the STD is computed.")
 args = parser.parse_args()
 
 # Define arguments
@@ -54,6 +56,7 @@ subject = args.subject_id
 session = args.session_id
 acq = args.acquisition_region
 rec = args.rec
+wm_mask = args.wm_mask
 
 if not os.path.isdir(path_processed_data):
   raise RuntimeError(f"The provided path does not exist.\nProvided path: {path_processed_data}")
@@ -66,10 +69,10 @@ def format_value(val):
         return f"{float(val):.6f}"
     except (ValueError, TypeError):
         return 'nan'
-            
-def write_csv(path_processed_data, subject, session, rec, max_ghosting='nan', mean_ghosting='nan'):
-    # Create or update the CSV file
-    csv_path = os.path.join(path_processed_data, "..", "results", "ghosting_metrics.csv")
+
+def write_csv(path_processed_data, subject, session, rec, max_std='nan', mean_std='nan'):
+     # Create or update the CSV file
+    csv_path = os.path.join(path_processed_data, "..", "results", "wm_std.csv")
 
     # Read existing data if file exists
     existing_data = {}
@@ -103,11 +106,11 @@ def write_csv(path_processed_data, subject, session, rec, max_ghosting='nan', me
 
     # Update with current measurements
     if rec == "rec-standard":
-        existing_data[subject_session]['max_standard'] = max_ghosting
-        existing_data[subject_session]['mean_standard'] = mean_ghosting
+        existing_data[subject_session]['max_standard'] = max_std
+        existing_data[subject_session]['mean_standard'] = mean_std
     else:  # rec == "rec-navigated"
-        existing_data[subject_session]['max_navigated'] = max_ghosting
-        existing_data[subject_session]['mean_navigated'] = mean_ghosting
+        existing_data[subject_session]['max_navigated'] = max_std
+        existing_data[subject_session]['mean_navigated'] = mean_std
 
     # Write the complete file
     with open(csv_path, 'w') as f:
@@ -125,37 +128,35 @@ def write_csv(path_processed_data, subject, session, rec, max_ghosting='nan', me
 def main():
     # Define file names
     file_anat = f"{subject}_{session}_{acq}_{rec}_{contrast}"
-    file_ghosting_mask = f"{subject}_{session}_{acq}_rec-navigated_{contrast}_ghostingMask"
+    file_wm_mask = wm_mask
 
     # Define paths
     path_sub_session = os.path.join(path_processed_data, subject, session, "anat")
     path_anat = os.path.join(path_sub_session, file_anat + ext)
-    path_ghosting_mask = os.path.join(path_sub_session, file_ghosting_mask + ext)
+    path_wm_mask = os.path.join(path_sub_session, file_wm_mask + ext)
 
     # Load the nifti files
-    mask_nii = nib.load(path_ghosting_mask)
+    mask_nii = nib.load(path_wm_mask)
     mask_data = mask_nii.get_fdata()
     anat_nii = nib.load(path_anat)
     anat_data = anat_nii.get_fdata()
 
     # Mask the anatomical data
-    # This will keep only the data inside the ghosting mask
+    # This will keep only the data inside the WM mask
     anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
 
-    # Compute slice-wise mean
+    # Compute slice-wise standard deviation
     nslices = anat_data.shape[2] 
-    slice_wise_mean = np.zeros(nslices)
+    slice_wise_std = np.zeros(nslices)
     for z in range(nslices):
-        slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
-    # TODO : Normalize the slice-wise means
-    # TODO : If we want, we can also create a CSV file with the slice-wise means
+        slice_wise_std[z] = np.ma.std(anat_masked[:, :, z])
 
-    # Compute max and mean ghosting metrics
-    max_ghosting = np.nanmax(slice_wise_mean)
-    mean_ghosting = np.nanmean(slice_wise_mean)
+    # Compute max and mean STDs
+    max_std = np.max(slice_wise_std)
+    mean_std = np.mean(slice_wise_std)
 
     # Write the results to the CSV file
-    write_csv(path_processed_data, subject, session, rec, max_ghosting, mean_ghosting)
+    write_csv(path_processed_data, subject, session, rec, max_std, mean_std)
 
 
 if __name__ == "__main__":
