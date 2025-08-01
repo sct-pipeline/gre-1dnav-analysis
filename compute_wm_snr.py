@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 #
-# Quantifies standard deviation (STD) by computing the slice-wise STD inside the white matter (WM) mask. The maximum and mean of those
+# Quantifies signal-to-noise (SNR) by computing slice-wise mean and standard deviation (STD) inside the white matter (WM) mask. The mean and median of those
 # metrics are combined in a single CSV file with the following structure:
 #
-# | Subject-ID/Session-ID/Acquisition | max rec-standard | max rec-navigated | mean rec-standard | mean rec-navigated |
-# |     sub-01/ses-01/acq-lowerT     |     0.000000      |      0.000000     |      0.000000     |      0.000000      |
-# |     sub-02/ses-01/acq-upperT     |     0.000000      |      0.000000     |      0.000000     |      0.000000      |
+# | Subject-ID/Session-ID/Acquisition | mean rec-standard | mean rec-navigated | median rec-standard | median rec-navigated |
+# |     sub-01/ses-01/acq-lowerT      |     0.000000      |      0.000000      |      0.000000       |      0.000000        |
+# |     sub-02/ses-01/acq-upperT      |     0.000000      |      0.000000      |      0.000000       |      0.000000        |
 #
 # It requires six arguments:
 # 1. path_processed_data : The path to the processed data directory (output path).
@@ -18,12 +18,12 @@
 # 5. rec: The reconstruction type, which can be one of the following:
 #    - rec-standard: Standard reconstruction
 #    - rec-navigated: Navigated reconstruction
-# 6. wm_mask: The white matter mask in which the STD is computed
+# 6. wm_mask: The white matter mask in which the STD and mean is computed
 # It will create and/or add data to the following file:
-#   /PATH/TO/PROCESSED/DATA/results/std.csv
+#   /PATH/TO/PROCESSED/DATA/results/wm_snr.csv
 # 
 # How to use:
-#   ./compute_std.py <path_processed_data> <subject_id> <session_id> <acquisition_region> <rec> <wm_mask>
+#   ./compute_wm_snr.py <path_processed_data> <subject_id> <session_id> <acquisition_region> <rec> <wm_mask>
 
 import os
 import sys
@@ -36,9 +36,9 @@ ext = ".nii.gz"
 contrast = "T2starw"
 
 parser = argparse.ArgumentParser(
-  description="Quantifies standard deviation (STD) by computing the slice-wise STD inside the white matter (WM) mask. The maximum and\
-  mean of those metrics are combined in a single CSV file with the following columns:\
-  | Subject-ID/Session-ID/Acquisition | max rec-standard | max rec-navigated | mean rec-standard | mean rec-navigated |"
+  description="Quantifies signal-to-noise (SNR) by computiing slice-wise mean and standard deviation (STD) inside the white matter (WM) mask. The mean and\
+  median of those metrics are combined in a single CSV file with the following columns:\
+  | Subject-ID/Session-ID/Acquisition | mean rec-standard | mean rec-navigated | median rec-standard | median rec-navigated |"
 )
 parser.add_argument("path_processed_data", help="The path to the processed data directory (output path).")
 parser.add_argument("subject_id", help="ID of the subject (e.g., sub-01).")
@@ -47,7 +47,7 @@ parser.add_argument("acquisition_region", choices=["acq-upperT", "acq-lowerT", "
                     help="Region of acquisition: acq-upperT, acq-lowerT, or acq-LSE.")
 parser.add_argument("rec", choices=["rec-standard", "rec-navigated"],
                     help="Reconstruction type: rec-standard or rec-navigated.")
-parser.add_argument("wm_mask", help="The white matter mask in which the STD is computed.")
+parser.add_argument("wm_mask", help="The white matter mask in which the STD and mean is computed.")
 args = parser.parse_args()
 
 # Define arguments
@@ -70,9 +70,9 @@ def format_value(val):
     except (ValueError, TypeError):
         return 'nan'
 
-def write_csv(path_processed_data, subject, session, acq, rec, max_std='nan', mean_std='nan'):
+def write_csv(path_processed_data, subject, session, acq,rec, mean_snr='nan', median_snr='nan'):
      # Create or update the CSV file
-    csv_path = os.path.join(path_processed_data, "..", "results", "wm_std.csv")
+    csv_path = os.path.join(path_processed_data, "..", "results", "wm_snr.csv")
 
     # Read existing data if file exists
     existing_data = {}
@@ -88,42 +88,42 @@ def write_csv(path_processed_data, subject, session, acq, rec, max_std='nan', me
                         if len(parts) >= 5:
                             subject_session_acq = parts[0]
                             existing_data[subject_session_acq] = {
-                                'max_standard': parts[1],
-                                'max_navigated': parts[2], 
-                                'mean_standard': parts[3],
-                                'mean_navigated': parts[4]
+                                'mean_standard': parts[1],
+                                'mean_navigated': parts[2], 
+                                'median_standard': parts[3],
+                                'median_navigated': parts[4]
                             }
 
-    # Update data for current subject/session/acq
+    # Update data for current subject/session/acquisition
     subject_session_acq = f"{subject}/{session}/{acq}"
     if subject_session_acq not in existing_data:
         existing_data[subject_session_acq] = {
-            'max_standard': 'nan',
-            'max_navigated': 'nan',
-            'mean_standard': 'nan', 
-            'mean_navigated': 'nan'
+            'mean_standard': 'nan',
+            'mean_navigated': 'nan',
+            'median_standard': 'nan', 
+            'median_navigated': 'nan'
         }
 
     # Update with current measurements
     if rec == "rec-standard":
-        existing_data[subject_session_acq]['max_standard'] = max_std
-        existing_data[subject_session_acq]['mean_standard'] = mean_std
+        existing_data[subject_session_acq]['mean_standard'] = mean_snr
+        existing_data[subject_session_acq]['median_standard'] = median_snr
     else:  # rec == "rec-navigated"
-        existing_data[subject_session_acq]['max_navigated'] = max_std
-        existing_data[subject_session_acq]['mean_navigated'] = mean_std
+        existing_data[subject_session_acq]['mean_navigated'] = mean_snr
+        existing_data[subject_session_acq]['median_navigated'] = median_snr
 
     # Write the complete file
     with open(csv_path, 'w') as f:
         # Write header
-        f.write("Subject-ID/Session-ID/Acquisition,max rec-standard,max rec-navigated,mean rec-standard,mean rec-navigated\n")
+        f.write("Subject-ID/Session-ID/Acquisition,mean rec-standard,mean rec-navigated,median rec-standard,median rec-navigated\n")
         # Write data
         for sub_ses_acq, data in existing_data.items():
-            max_std = format_value(data['max_standard'])
-            max_nav = format_value(data['max_navigated'])
             mean_std = format_value(data['mean_standard'])
             mean_nav = format_value(data['mean_navigated'])
+            median_std = format_value(data['median_standard'])
+            median_nav = format_value(data['median_navigated'])
             
-            f.write(f"{sub_ses_acq},{max_std},{max_nav},{mean_std},{mean_nav}\n")
+            f.write(f"{sub_ses_acq},{mean_std},{mean_nav},{median_std},{median_nav}\n")
 
 def main():
     # Define file names
@@ -145,18 +145,25 @@ def main():
     # This will keep only the data inside the WM mask
     anat_masked = np.ma.masked_array(anat_data, mask=(mask_data == 0))
 
-    # Compute slice-wise standard deviation
+    # Compute slice-wise standard deviation, mean, and SNR
     nslices = anat_data.shape[2] 
     slice_wise_std = np.zeros(nslices)
+    slice_wise_mean = np.zeros(nslices)
+    slice_wise_snr = np.zeros(nslices)
+
+
     for z in range(nslices):
         slice_wise_std[z] = np.ma.std(anat_masked[:, :, z])
-
+        slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
+        slice_wise_snr[z] = slice_wise_mean[z] / slice_wise_std[z]
+        
+    
     # Compute max and mean STDs
-    max_std = np.nanmax(slice_wise_std)
-    mean_std = np.nanmean(slice_wise_std)
+    mean_snr = np.nanmean(slice_wise_snr)
+    median_snr = np.nanmedian(slice_wise_snr)
 
     # Write the results to the CSV file
-    write_csv(path_processed_data, subject, session, acq, rec, max_std, mean_std)
+    write_csv(path_processed_data, subject, session, acq, rec, mean_snr, median_snr)
 
 
 if __name__ == "__main__":
