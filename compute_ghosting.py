@@ -3,9 +3,9 @@
 # Quantifies ghosting by computing the slice-wise mean inside the ghosting mask. The maximum and mean of those
 # metrics are combined in a single CSV file with the following structure:
 #
-# | Subject-ID/Session-ID | max rec-standard | max rec-navigated | mean rec-standard | mean rec-navigated |
-# |     sub-01/ses-01     |     0.000000     |      0.000000     |      0.000000     |      0.000000      |
-# |     sub-02/ses-01     |     0.000000     |      0.000000     |      0.000000     |      0.000000      |
+# | Subject-ID/Session-ID/Acquisition | max rec-standard | max rec-navigated | mean rec-standard | mean rec-navigated |
+# |     sub-01/ses-01/acq-lowerT      |     0.000000     |      0.000000     |      0.000000     |      0.000000      |
+# |     sub-02/ses-01/acq-upperT      |     0.000000     |      0.000000     |      0.000000     |      0.000000      |
 #
 # It requires five arguments:
 # 1. path_processed_data : The path to the processed data directory (output path).
@@ -37,7 +37,7 @@ contrast = "T2starw"
 parser = argparse.ArgumentParser(
   description="Quantifies ghosting by computing the slice-wise mean inside the ghosting mask. The maximum and mean of those metrics are\
   combined in a single CSV file with the following columns:\
-  | Subject-ID/Session-ID | max rec-standard | max rec-navigated | mean rec-standard | mean rec-navigated |"
+  | Subject-ID/Session-ID/Acquisition | max rec-standard | max rec-navigated | mean rec-standard | mean rec-navigated |"
 )
 parser.add_argument("path_processed_data", help="The path to the processed data directory (output path).")
 parser.add_argument("subject_id", help="ID of the subject (e.g., sub-01).")
@@ -67,7 +67,7 @@ def format_value(val):
     except (ValueError, TypeError):
         return 'nan'
             
-def write_csv(path_processed_data, subject, session, rec, max_ghosting='nan', mean_ghosting='nan'):
+def write_csv(path_processed_data, subject, session, acq, rec, max_ghosting='nan', mean_ghosting='nan'):
     # Create or update the CSV file
     csv_path = os.path.join(path_processed_data, "..", "results", "ghosting_metrics.csv")
 
@@ -83,18 +83,18 @@ def write_csv(path_processed_data, subject, session, rec, max_ghosting='nan', me
                     if line.strip():
                         parts = line.strip().split(",")
                         if len(parts) >= 5:
-                            subject_session = parts[0]
-                            existing_data[subject_session] = {
+                            subject_session_acq = parts[0]
+                            existing_data[subject_session_acq] = {
                                 'max_standard': parts[1],
                                 'max_navigated': parts[2], 
                                 'mean_standard': parts[3],
                                 'mean_navigated': parts[4]
                             }
 
-    # Update data for current subject/session
-    subject_session = f"{subject}/{session}"
-    if subject_session not in existing_data:
-        existing_data[subject_session] = {
+    # Update data for current subject/session/acq
+    subject_session_acq = f"{subject}/{session}/{acq}"
+    if subject_session_acq not in existing_data:
+        existing_data[subject_session_acq] = {
             'max_standard': 'nan',
             'max_navigated': 'nan',
             'mean_standard': 'nan', 
@@ -103,24 +103,24 @@ def write_csv(path_processed_data, subject, session, rec, max_ghosting='nan', me
 
     # Update with current measurements
     if rec == "rec-standard":
-        existing_data[subject_session]['max_standard'] = max_ghosting
-        existing_data[subject_session]['mean_standard'] = mean_ghosting
+        existing_data[subject_session_acq]['max_standard'] = max_ghosting
+        existing_data[subject_session_acq]['mean_standard'] = mean_ghosting
     else:  # rec == "rec-navigated"
-        existing_data[subject_session]['max_navigated'] = max_ghosting
-        existing_data[subject_session]['mean_navigated'] = mean_ghosting
+        existing_data[subject_session_acq]['max_navigated'] = max_ghosting
+        existing_data[subject_session_acq]['mean_navigated'] = mean_ghosting
 
     # Write the complete file
     with open(csv_path, 'w') as f:
         # Write header
-        f.write("Subject-ID/Session-ID,max rec-standard,max rec-navigated,mean rec-standard,mean rec-navigated\n")
+        f.write("Subject-ID/Session-ID/Acquisition,max rec-standard,max rec-navigated,mean rec-standard,mean rec-navigated\n")
         # Write data
-        for sub_ses, data in existing_data.items():
+        for sub_ses_acq, data in existing_data.items():
             max_std = format_value(data['max_standard'])
             max_nav = format_value(data['max_navigated'])
             mean_std = format_value(data['mean_standard'])
             mean_nav = format_value(data['mean_navigated'])
             
-            f.write(f"{sub_ses},{max_std},{max_nav},{mean_std},{mean_nav}\n")
+            f.write(f"{sub_ses_acq},{max_std},{max_nav},{mean_std},{mean_nav}\n")
 
 def main():
     # Define file names
@@ -155,7 +155,7 @@ def main():
     mean_ghosting = np.nanmean(slice_wise_mean)
 
     # Write the results to the CSV file
-    write_csv(path_processed_data, subject, session, rec, max_ghosting, mean_ghosting)
+    write_csv(path_processed_data, subject, session, acq, rec, max_ghosting, mean_ghosting)
 
 
 if __name__ == "__main__":
