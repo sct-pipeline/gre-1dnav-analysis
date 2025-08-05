@@ -28,7 +28,6 @@
 #   ./compute_cnr.py <path_processed_data> <subject_id> <session_id> <acquisition_region> <rec> <wm_mask> <gm_mask>
 
 import os
-import sys
 import numpy as np
 import nibabel as nib
 import argparse
@@ -162,13 +161,11 @@ def main():
     slice_wise_gm_mean = np.zeros(nslices)
     slice_wise_cnr = np.zeros(nslices)
 
-
     for z in range(nslices):
         slice_wise_wm_std[z] = np.ma.std(anat_wm_masked[:, :, z])
         slice_wise_wm_mean[z] = np.ma.mean(anat_wm_masked[:, :, z])
         slice_wise_gm_mean[z] = np.ma.mean(anat_gm_masked[:, :, z])
         slice_wise_cnr[z] = abs(slice_wise_wm_mean[z] - slice_wise_gm_mean[z]) / slice_wise_wm_std[z]
-        
     
     # Compute max and mean STDs
     mean_cnr = np.nanmean(slice_wise_cnr)

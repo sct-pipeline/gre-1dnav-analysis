@@ -93,7 +93,6 @@ compute_wm(){
 }
 
 
-
 compute_ghosting()
 {
     local path_data="$1"
@@ -181,8 +180,6 @@ for acq in "${ACQ[@]}";do
             # Calculate WM mask with the navigated segmentation
             compute_wm "${file_navigated}" "${file_seg}" "${file_gmseg}"
             file_wmseg="${file_navigated}_label-WM_seg"
-            # Compute slicewise snr and cnr values
-            compute_snr_cnr "${file}" "${file_wmseg}" "${file_gmseg}"
             # Quantify ghosting
             compute_ghosting "${PATH_DATA}" "${PATH_DATA_PROCESSED}" "${SUBJECT}" "${SESSION}" "${acq}" "${rec}"
             # Compute STD

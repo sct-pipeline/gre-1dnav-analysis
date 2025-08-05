@@ -26,7 +26,6 @@
 #   ./compute_wm_snr.py <path_processed_data> <subject_id> <session_id> <acquisition_region> <rec> <wm_mask>
 
 import os
-import sys
 import numpy as np
 import nibabel as nib
 import argparse
@@ -151,12 +150,10 @@ def main():
     slice_wise_mean = np.zeros(nslices)
     slice_wise_snr = np.zeros(nslices)
 
-
     for z in range(nslices):
         slice_wise_std[z] = np.ma.std(anat_masked[:, :, z])
         slice_wise_mean[z] = np.ma.mean(anat_masked[:, :, z])
         slice_wise_snr[z] = slice_wise_mean[z] / slice_wise_std[z]
-        
     
     # Compute max and mean STDs
     mean_snr = np.nanmean(slice_wise_snr)

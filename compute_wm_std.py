@@ -26,7 +26,6 @@
 #   ./compute_std.py <path_processed_data> <subject_id> <session_id> <acquisition_region> <rec> <wm_mask>
 
 import os
-import sys
 import numpy as np
 import nibabel as nib
 import argparse
