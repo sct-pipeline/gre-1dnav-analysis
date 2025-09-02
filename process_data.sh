@@ -202,7 +202,7 @@ done
 # ------------------------------------------------------------------------------
 # Display useful info for the log
 end=`date +%s`
-runtime=$(({end}-{start}))
+runtime=$((${end}-${start}))
 echo
 echo "~~~"
 echo "SCT version: `sct_version`"
