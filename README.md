@@ -31,4 +31,4 @@ sct_run_batch -script process_data.sh -path-data ~/data/ds006347/ -path-output ~
 ```
 ## 3 - Run figure scripts
 >[!Warning]
->TODO
+>python figures.py <PATH_TO_OUTPUT>
