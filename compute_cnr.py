@@ -157,15 +157,17 @@ def main():
     # Compute slice-wise standard deviation, mean, and SNR
     nslices = anat_data.shape[2] 
     slice_wise_wm_std = np.zeros(nslices)
+    slice_wise_gm_std = np.zeros(nslices)
     slice_wise_wm_mean = np.zeros(nslices)
     slice_wise_gm_mean = np.zeros(nslices)
     slice_wise_cnr = np.zeros(nslices)
 
     for z in range(nslices):
         slice_wise_wm_std[z] = np.ma.std(anat_wm_masked[:, :, z])
+        slice_wise_gm_std[z] = np.ma.std(anat_gm_masked[:, :, z])
         slice_wise_wm_mean[z] = np.ma.mean(anat_wm_masked[:, :, z])
         slice_wise_gm_mean[z] = np.ma.mean(anat_gm_masked[:, :, z])
-        slice_wise_cnr[z] = abs(slice_wise_wm_mean[z] - slice_wise_gm_mean[z]) / slice_wise_wm_std[z]
+        slice_wise_cnr[z] = abs(slice_wise_wm_mean[z] - slice_wise_gm_mean[z]) / np.sqrt(slice_wise_wm_std[z]**2 + slice_wise_gm_std[z]**2)
     
     # Compute max and mean STDs
     mean_cnr = np.nanmean(slice_wise_cnr)
